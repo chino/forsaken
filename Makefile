@@ -67,9 +67,6 @@ endif
 LUA=$(shell pkg-config lua && echo lua || echo lua5.1)
 MACOSX=$(shell uname -a | grep -qi darwin && echo 1 || echo 0)
 
-# debian/ubuntu split luasocket's mime module into its own package
-LUA_MIME=$(shell pkg-config --exists $(LUA)-mime && echo $(LUA)-mime)
-
 # which version of sdl do you want to ask pkgconfig for ?
 SDL=1
 ifeq ($(SDL),1)
@@ -85,7 +82,7 @@ $(if $(shell test "$(GL)" -ge 3 -a "$(SDL)" -lt 2 && echo fail), \
      $(error "GL >= 3 only supported with SDL >= 2"))
 
 # library headers
-CFLAGS+= `pkg-config --cflags $(SDL_) $(LUA) $(LUA)-socket libenet libpng zlib openal`
+CFLAGS+= `pkg-config --cflags $(SDL_) $(LUA) libenet libpng zlib openal`
 ifeq ($(MACOSX),1)
   CFLAGS += -DMACOSX
 endif
@@ -98,7 +95,7 @@ ifeq ($(STATIC),1)
   LIB+= -Wl,-dn
   PKG_CFG_OPTS= --static
 endif
-LIB+= `pkg-config $(PKG_CFG_OPTS) --libs $(LUA) $(LUA)-socket $(LUA_MIME) libenet libpng zlib openal` -lm
+LIB+= `pkg-config $(PKG_CFG_OPTS) --libs $(LUA) libenet libpng zlib openal` -lm
 ifeq ($(STATIC),1)
   LIB+= -Wl,-dy
 endif

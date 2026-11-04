@@ -31,12 +31,6 @@
 
 #include <stdio.h>
 #include "lua_common.h"
-
-// luasocket's own headers pull in a private compat.h that several
-// distributions (debian/ubuntu lua-socket-dev) do not install, so
-// declare the two entry points we link against directly.
-int luaopen_socket_core(lua_State *L);
-int luaopen_mime_core(lua_State *L);
 #include "main.h"
 
 lua_State *L1;
@@ -118,29 +112,6 @@ static int run_init_func( void )
 	return err;
 }
 
-static void assign_loader( char * name, lua_CFunction loader )
-{
-	// package.preload[ name ] = loader
-	lua_getglobal(L1, "package");
-	lua_getfield(L1, -1, "preload");
-	lua_pushcfunction(L1, loader);
-	lua_setfield(L1, -2, name);
-	lua_pop(L1, 2);
-}
-
-#ifdef MINIUPNP
-int luaopen_miniupnp(lua_State *L);
-#endif
-
-static void assign_loaders( void )
-{
-	assign_loader( "socket.core", luaopen_socket_core );
-	assign_loader( "mime.core", luaopen_mime_core );
-#ifdef MINIUPNP
-	assign_loader( "miniupnp", luaopen_miniupnp );
-#endif
-}
-
 static int lua_create(void)
 {
 	/* luaL_Reg x[] = { { NULL, NULL } }; */
@@ -151,7 +122,6 @@ static int lua_create(void)
 		return 1;
 	}
 	luaL_openlibs(L1);
-	assign_loaders();
 	return 0;
 }
 
