@@ -54,7 +54,11 @@ bool sdl_init( void )
 
 #define NUMBER_MODES 19
 render_display_mode_t video_modes[NUMBER_MODES] = {
+#ifdef PANDORA
+{800,480}, // the Pandora lcd
+#else
 {0,0}, // current video mode of the desktop
+#endif
 {640,480},
 {800,600}, // default window mode
 {1024,768},
