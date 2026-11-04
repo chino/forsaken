@@ -45,6 +45,7 @@ typedef struct LINE {
 	u_int8_t		StartTrans;			// Start Transparency
 	u_int8_t		EndTrans;			// End Transparency
 	u_int16_t		Group;				// Group ImIn
+	bool		Used;				// on the used list
 
 } LINE;
 
