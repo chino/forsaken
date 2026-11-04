@@ -508,7 +508,7 @@ static bool set_defaults( void )
 	return true;
 }
 
-static resize_viewport( int width, int height )
+static void resize_viewport( int width, int height )
 {
 	render_viewport_t viewport;
 	viewport.X = 0;
@@ -525,7 +525,9 @@ gl_caps_t caps;
 
 static void detect_caps( void )
 {
-	int i, max;
+#if GL >= 3 && !defined(MACOSX)
+	GLint i, max;
+#endif
 
 	//check whether anisotropic filtering extension is supported
 	caps.anisotropic = 0.0f;
@@ -542,7 +544,7 @@ static void detect_caps( void )
 	for(i = 0; i < max; i++ )
 	{
 		const GLubyte* extension = glGetStringi(GL_EXTENSIONS,i);
-		if(extension && strstr(extension, "GL_EXT_texture_filter_anisotropic"))
+		if(extension && strstr((const char *) extension, "GL_EXT_texture_filter_anisotropic"))
 			glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &caps.anisotropic );
 	}
   #endif
@@ -798,7 +800,7 @@ void ortho_update ( GLuint current_program )
 {
 	MATRIX m;
 	float left, right, bottom, top, near, far;
-	GLuint u_ortho_matrix;
+	GLint u_ortho_matrix;
 
 	if ( ortho_matrix_needs_update && ( u_ortho_matrix = glGetUniformLocation( current_program, "ortho_proj" ) ) >= 0 )
 	{
@@ -818,7 +820,7 @@ void ortho_update ( GLuint current_program )
 		m._24 = -(top+bottom)/(top-bottom) + 2.0f;
 		m._34 = -(far+near)/(far-near);
 		m._44 = 1.0f;
-		glUniformMatrix4fv( u_ortho_matrix, 1, GL_TRUE, &m );
+		glUniformMatrix4fv( u_ortho_matrix, 1, GL_TRUE, (GLfloat *) &m );
 		CHECK_GL_ERRORS;
 		ortho_matrix_needs_update = false;
 	}
@@ -847,13 +849,13 @@ bool mvp_needs_update;
 void mvp_update( GLuint current_program )
 {
 	MATRIX mvp;
-	GLuint u_mvp;
+	GLint u_mvp;
 
 	if ( mvp_needs_update && ( u_mvp = glGetUniformLocation( current_program, "mvp" ) ) >= 0 )
 	{
 		MatrixMultiply( &world_matrix, &view_matrix, &mvp );
 		MatrixMultiply( &mvp,          &proj_matrix, &mvp );
-		glUniformMatrix4fv( u_mvp, 1, GL_FALSE, &mvp );
+		glUniformMatrix4fv( u_mvp, 1, GL_FALSE, (GLfloat *) &mvp );
 		CHECK_GL_ERRORS;
 		mvp_needs_update = false;
 	}
@@ -919,7 +921,7 @@ LPVERTEXBUFFER _create_buffer( int size, GLenum type, GLenum gettype, GLenum usa
 {
 	// Need to bind the new buffer in order to specify its parameters,
 	// so temporarily store the old binding in a variable.
-	GLuint oldvbo;
+	GLint oldvbo;
 	GLuint vbo;
 
 	glGenBuffers( 1, &vbo );
@@ -931,7 +933,7 @@ LPVERTEXBUFFER _create_buffer( int size, GLenum type, GLenum gettype, GLenum usa
 
 	CHECK_GL_ERRORS;
 
-	return (LPVERTEXBUFFER) vbo;
+	return (LPVERTEXBUFFER)(size_t) vbo;
 }
 #endif
 
@@ -942,7 +944,7 @@ bool draw_line_object(RENDEROBJECT *renderObject){return draw_render_object(rend
 #if GL == 1
 	#define delete_buffer(b) free( b )
 #else
-	#define delete_buffer(b) glDeleteBuffers( 1, b )
+	#define delete_buffer(b) do { GLuint id = (GLuint)(size_t) *(b); glDeleteBuffers( 1, &id ); } while(0)
 #endif
 
 void FSReleaseRenderObject(RENDEROBJECT *renderObject)

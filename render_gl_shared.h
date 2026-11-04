@@ -19,6 +19,9 @@
 #define GL_GLEXT_PROTOTYPES 1
 #endif
 #include "SDL_opengl.h"
+#if SDL_VERSION_ATLEAST(2,0,0) && !defined(MACOSX)
+#include <GL/glu.h> // sdl2's SDL_opengl.h no longer includes it
+#endif
 
 extern render_info_t render_info;
 
@@ -75,6 +78,7 @@ extern MATRIX world_matrix;
 #if GL != 1
 
 void mvp_update( GLuint current_program );
+void ortho_update( GLuint current_program );
 
 extern GLuint vertex_shader;
 extern GLuint fragment_shader;
