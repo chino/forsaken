@@ -16,6 +16,7 @@ bool DebugLog = false;
 #include <windows.h>	// for various things
 #include <ctype.h>		// for toupper
 #endif
+#include <SDL.h>
 
 
 char * convert_char( char from, char to, char* in )
@@ -249,6 +250,8 @@ void DebugState( const char * str )
 //extern render_info_t render_info;
 extern void MenuGoFullScreen( MENUITEM *Item );
 extern void input_grab( bool clip );
+static char last_msg[ 1024 ];
+
 int Msg( const char * msg, ... )
 {
 //	bool was_fullscreen = render_info.fullscreen;
@@ -262,6 +265,9 @@ int Msg( const char * msg, ... )
 	va_end( args );
 
 	txt[sizeof(txt)-1] = 0;
+
+	// remembered for ShowFatalError()
+	strncpy( last_msg, txt, sizeof(last_msg)-1 );
 
 #if 0 //def WIN32
 
@@ -300,3 +306,27 @@ int Msg( const char * msg, ... )
 	return res;
 }
 
+//
+// Tells the user why the game is quitting on an error instead of
+// silently dropping back to the desktop.
+//
+
+void ShowFatalError( void )
+{
+	char txt[ 1280 ];
+
+	snprintf( txt, sizeof(txt),
+		"ProjectX had to quit because of an error:\n\n%s\n\n"
+		"Run with -log to write details to the logs folder.",
+		last_msg[0] ? last_msg : "unknown error" );
+	txt[sizeof(txt)-1] = 0;
+
+	fprintf( stderr, "%s\n", txt );
+	DebugPrintf( "ShowFatalError: %s\n", last_msg );
+
+#if SDL_VERSION_ATLEAST(2,0,0)
+	SDL_ShowSimpleMessageBox( SDL_MESSAGEBOX_ERROR, "ProjectX", txt, NULL );
+#elif defined(WIN32)
+	MessageBoxA( NULL, txt, "ProjectX", MB_OK | MB_ICONERROR );
+#endif
+}
