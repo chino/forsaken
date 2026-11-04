@@ -142,7 +142,8 @@ void DebugPrintf( const char * format, ... ) // timestamp prefix
 	int buf_length;
 	va_list args;
 
-	if(!Debug)
+	// -log on its own must still reach the log file
+	if(!Debug && !DebugLog)
 		return;
 
 	struct timeb now;
@@ -167,7 +168,8 @@ void DebugPrintf_( const char * format, ... ) // no timestamp prefix
 	static char buf[0x4000];
 	va_list args;
 
-	if(!Debug)
+	// -log on its own must still reach the log file
+	if(!Debug && !DebugLog)
 		return;
 
 	va_start( args, format );
@@ -183,14 +185,18 @@ void DebugPuts( char * buf )
 {
 	static FILE * logfile_fp;
 
-	if(!Debug)
+	// -log on its own must still reach the log file
+	if(!Debug && !DebugLog)
 		return;
 
+	if( Debug )
+	{
 #ifdef WIN32
-	OutputDebugString( buf );
+		OutputDebugString( buf );
 #else
-	fputs( buf, stderr );
+		fputs( buf, stderr );
 #endif
+	}
 
 	if( !DebugLog )
 		return;
