@@ -425,11 +425,13 @@ void app_joy_button( SDL_JoyButtonEvent * button )
 	joy_button_state[ button->which ][ button->button ] =
 		(button->type == SDL_JOYBUTTONDOWN);
 
-	// pass down mouse events for menu processing
+	// pass down joystick events for menu processing
+	// the code must carry the joystick number as well as the button,
+	// otherwise binding a button in the controls menu always lands on js0
 	if(  button->type == SDL_JOYBUTTONDOWN )
 	{
 		input_buffer_send(
-			button->button + DIK_JOYSTICK
+			JOYSTICK_BUTTON_KEYCODE( button->which, button->button )
 		);
 	}
 }
@@ -520,6 +522,15 @@ void app_joy_hat( SDL_JoyHatEvent * hat )
 }
 
 #ifndef DINPUTJOY
+
+// sdl2 takes a device index in SDL_JoystickNameForIndex(), sdl 1.2 in
+// SDL_JoystickName(); sdl2's SDL_JoystickName() wants an opened joystick
+#if SDL_VERSION_ATLEAST(2,0,0)
+#define joystick_name_for_index( I ) SDL_JoystickNameForIndex( I )
+#else
+#define joystick_name_for_index( I ) SDL_JoystickName( I )
+#endif
+
 bool joysticks_init(void)
 {
 	int i, j, k;
@@ -539,13 +550,14 @@ bool joysticks_init(void)
 	for (i = 0; i < Num_Joysticks; i++)
 	{
 		SDL_Joystick * joy = SDL_JoystickOpen(i);
+		const char * name;
 
 		// failed to open joystick
 		if(!joy)
 		{
 			DebugPrintf(
 				"joysticks_init: joystick (%d), '%s' failed to open\n",
-				i, SDL_JoystickName(i)
+				i, joystick_name_for_index(i)
 			);
 			continue;
 		}
@@ -561,7 +573,8 @@ bool joysticks_init(void)
 		// TODO
 		// JoystickInfo[i].NumBalls = SDL_JoystickNumBalls(joy);
 
-		JoystickInfo[i].Name = strdup( SDL_JoystickName(i) );
+		name = joystick_name_for_index(i);
+		JoystickInfo[i].Name = strdup( name ? name : "Unknown joystick" );
 
 		DebugPrintf( 
 			"joysticks_init: joystick (%d), name='%s', axises=%d, buttons=%d, hats=%d\n", 
