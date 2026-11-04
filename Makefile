@@ -150,6 +150,15 @@ ifeq ($(INPUT_DISABLED),1)
   CFLAGS+= -DINPUT_DISABLED
 endif
 
+# ogg theora intro movie, built in when libtheora is found; MOVIE=0 leaves it out
+ifneq ($(RENDER_DISABLED),1)
+  MOVIE ?= $(shell pkg-config --exists theoradec vorbis ogg && echo 1)
+endif
+ifeq ($(MOVIE),1)
+  CFLAGS+= -DMOVIE_THEORA `pkg-config --cflags theoradec vorbis ogg`
+  LIB+= `pkg-config --libs theoradec vorbis ogg`
+endif
+
 
 INC=$(wildcard *.h)
 SRC=$(wildcard *.c)

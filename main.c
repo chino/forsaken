@@ -537,6 +537,9 @@ static bool AppInit( char * lpCmdLine )
 //
 
 extern bool RenderScene( void );
+#ifdef MOVIE_THEORA
+extern bool movie_play( const char * path );
+#endif
 
 static bool RenderLoop()
 {
@@ -608,6 +611,11 @@ int main( int argc, char* argv[] )
     // Create the window and initialize all objects needed to begin rendering
     if(!AppInit(cli))
 		goto FAILURE;
+
+#ifdef MOVIE_THEORA
+	// the intro, when there is one
+	movie_play( "data/movies/intro.ogv" );
+#endif
 
 	while( !QuitRequested )
 	{
