@@ -45,17 +45,23 @@ const char * render_error_description( int e )
 
 void render_mode_wireframe(void)
 {
+#ifndef GLES
 	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+#endif
 }
 
 void render_mode_points(void)
 {
+#ifndef GLES
 	glPolygonMode(GL_FRONT_AND_BACK, GL_POINT);
+#endif
 }
 
 void render_mode_fill(void)
 {
+#ifndef GLES
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+#endif
 }
 
 // unused in opengl
@@ -105,6 +111,29 @@ void release_texture( LPTEXTURE texture )
 	free(texture);
 }
 
+#ifdef HALF_SIZE_TEXTURES
+// halve big textures on low memory boards, 2x2 box filter done in place
+static void half_size_image( texture_image_t * image )
+{
+	int x, y, c;
+	int w = image->w / 2;
+	int h = image->h / 2;
+	int row = image->w * 4;
+	unsigned char * src = (unsigned char *) image->data;
+	unsigned char * dst = src;
+	for( y = 0; y < h; y++ )
+		for( x = 0; x < w; x++ )
+			for( c = 0; c < 4; c++ )
+			{
+				unsigned char * p = src + y * 2 * row + x * 8 + c;
+				*dst++ = ( p[0] + p[4] + p[row] + p[row+4] + 2 ) / 4;
+			}
+	image->w = w;
+	image->h = h;
+	image->size = w * h * 4;
+}
+#endif
+
 static bool create_texture(LPTEXTURE *t, const char *path, u_int16_t *width, u_int16_t *height, int numMips, bool * colorkey)
 {
 	texture_t *texdata;
@@ -127,6 +156,11 @@ static bool create_texture(LPTEXTURE *t, const char *path, u_int16_t *width, u_i
 	*width  = (u_int16_t) image.w;
 	*height = (u_int16_t) image.h;
 	(*colorkey) = (bool) image.colorkey;
+
+#ifdef HALF_SIZE_TEXTURES
+	if( !image.colorkey && ( image.w >= 128 || image.h >= 128 ) )
+		half_size_image( &image );
+#endif
 
 	// employ colour key and gamma correction
 	{
@@ -164,6 +198,10 @@ static bool create_texture(LPTEXTURE *t, const char *path, u_int16_t *width, u_i
 		texdata = malloc(sizeof(texture_t));
 		glGenTextures(1, &texdata->id);
 		glBindTexture(GL_TEXTURE_2D, texdata->id);
+#ifdef GLES
+		// no glu on GLES
+		glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE);
+#endif
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image.w, image.h, 0, GL_RGBA, GL_UNSIGNED_BYTE, image.data);
 		CHECK_GL_ERRORS;
 	}
@@ -190,7 +228,7 @@ static bool create_texture(LPTEXTURE *t, const char *path, u_int16_t *width, u_i
 
 #if GL > 1
 	glGenerateMipmap( GL_TEXTURE_2D );
-#else
+#elif !defined(GLES)
 	// generates full range of mipmaps and scales to nearest power of 2
 	if(gluBuild2DMipmaps(GL_TEXTURE_2D, GL_RGBA, image.w, image.h, GL_RGBA, GL_UNSIGNED_BYTE, image.data) != 0)
 	{
@@ -225,6 +263,12 @@ bool FSCreateTexture(LPTEXTURE *texture, const char *fileName, u_int16_t *width,
 
 static void print_info( void )
 {
+#ifdef GLES
+	DebugPrintf( "gles vendor='%s', renderer='%s', version='%s'\n",
+		glGetString(GL_VENDOR),
+		glGetString(GL_RENDERER),
+		glGetString(GL_VERSION));
+#else
 	GLboolean b;
 	glGetBooleanv(GL_STEREO,&b);
 
@@ -234,6 +278,7 @@ static void print_info( void )
 		glGetString(GL_VERSION),
 		glGetString(GL_SHADING_LANGUAGE_VERSION),
 		(b)?"true":"false");
+#endif
 
 #if GL < 3
 	DebugPrintf( "extensions='%s'\n", glGetString(GL_EXTENSIONS));

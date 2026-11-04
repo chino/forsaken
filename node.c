@@ -27,6 +27,7 @@
 #include "node.h"
 #include "networking.h"
 #include "file.h"
+#include "util.h"
 #include "triggers.h"
 #include "models.h"
 #include "enemies.h"
@@ -169,10 +170,10 @@ bool Nodeload( char * Filename )
 		
 		NodePnt->NodeNum = e;
 		
-		NodePnt->Pos.x = *FloatPnt++;
-		NodePnt->Pos.y = *FloatPnt++;
-		NodePnt->Pos.z = *FloatPnt++;
-		NodePnt->Radius = *FloatPnt++;
+		NodePnt->Pos.x = read_float( &FloatPnt );
+		NodePnt->Pos.y = read_float( &FloatPnt );
+		NodePnt->Pos.z = read_float( &FloatPnt );
+		NodePnt->Radius = read_float( &FloatPnt );
 		
 		u_int32Pnt = (u_int32_t*) FloatPnt;
 		NodePnt->NetMask = *u_int32Pnt++;				// which networks this node is in...

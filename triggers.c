@@ -988,7 +988,7 @@ bool Triggerload( char * Filename )
 		m->Val = *intpnt++;
 
 		floatptr = (float*) intpnt;
-		m->Time = *floatptr++ * 60.0F;
+		m->Time = read_float( &floatptr ) * 60.0F;
 		intpnt = (int*) floatptr;
 				
 		j = *intpnt++;

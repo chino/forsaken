@@ -61,6 +61,7 @@ typedef struct {
 #if SDL_VERSION_ATLEAST(2,0,0)
 	SDL_Window*             window;
 	SDL_Renderer*           renderer;
+	SDL_GLContext           gl_context; // only used by GLES builds
 #else
 	SDL_Surface*	        screen;
 #endif
@@ -242,7 +243,7 @@ void FSReleaseRenderObject(RENDEROBJECT *renderObject);
 #endif
 
 // this is used to read the file because the file
-typedef struct {
+typedef struct OLDLVERTEX {
     union {
 		float     x;             /* Homogeneous coordinates */
 		float     dvX;
@@ -272,7 +273,7 @@ typedef struct {
 		float     tv;
 		float     dvTV;
     };
-} *LPOLDLVERTEX;
+} OLDLVERTEX, *LPOLDLVERTEX;
 
 /* bjd - remove when done. taken from SDK */
 #define CLIP_LEFT                0x00000001L

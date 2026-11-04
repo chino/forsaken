@@ -147,20 +147,20 @@ bool ExternalForcesLoad( char * Filename )
 		}
 
 		floatpnt = (float *) Buffer;
-		EFpnt->Origin.x = *floatpnt++;
-		EFpnt->Origin.y = *floatpnt++;
-		EFpnt->Origin.z = *floatpnt++;
-		EFpnt->Dir.x = *floatpnt++;
-		EFpnt->Dir.y = *floatpnt++;
-		EFpnt->Dir.z = *floatpnt++;
-		EFpnt->Up.x = *floatpnt++;
-		EFpnt->Up.y = *floatpnt++;
-		EFpnt->Up.z = *floatpnt++;
-		EFpnt->MinForce = *floatpnt++;
-		EFpnt->MaxForce = *floatpnt++;
-		EFpnt->Width = *floatpnt++;
-		EFpnt->Height = *floatpnt++;
-		EFpnt->Range = 1.0F / *floatpnt++;
+		EFpnt->Origin.x = read_float( &floatpnt );
+		EFpnt->Origin.y = read_float( &floatpnt );
+		EFpnt->Origin.z = read_float( &floatpnt );
+		EFpnt->Dir.x = read_float( &floatpnt );
+		EFpnt->Dir.y = read_float( &floatpnt );
+		EFpnt->Dir.z = read_float( &floatpnt );
+		EFpnt->Up.x = read_float( &floatpnt );
+		EFpnt->Up.y = read_float( &floatpnt );
+		EFpnt->Up.z = read_float( &floatpnt );
+		EFpnt->MinForce = read_float( &floatpnt );
+		EFpnt->MaxForce = read_float( &floatpnt );
+		EFpnt->Width = read_float( &floatpnt );
+		EFpnt->Height = read_float( &floatpnt );
+		EFpnt->Range = 1.0F / read_float( &floatpnt );
 		Buffer = (char *) floatpnt;
 
 		Uint16Pnt = (u_int16_t *) Buffer;
@@ -168,12 +168,12 @@ bool ExternalForcesLoad( char * Filename )
 		Buffer = (char *) Uint16Pnt;
 		floatpnt = (float *) Buffer;
 
-		EFpnt->Pos.x = *floatpnt++;
-		EFpnt->Pos.y = *floatpnt++;
-		EFpnt->Pos.z = *floatpnt++;
-		EFpnt->half_size.x = *floatpnt++;
-		EFpnt->half_size.y = *floatpnt++;
-		EFpnt->half_size.z = *floatpnt++;
+		EFpnt->Pos.x = read_float( &floatpnt );
+		EFpnt->Pos.y = read_float( &floatpnt );
+		EFpnt->Pos.z = read_float( &floatpnt );
+		EFpnt->half_size.x = read_float( &floatpnt );
+		EFpnt->half_size.y = read_float( &floatpnt );
+		EFpnt->half_size.z = read_float( &floatpnt );
 		Buffer = (char *) floatpnt;
 		
 		if( EFpnt->Type != ZONE_Sphere )
@@ -198,10 +198,10 @@ bool ExternalForcesLoad( char * Filename )
 // appears that the file data stops !
 // but we were told that there was more data...
 // we would need to properly track the location in the stream and not go over the stream size
-				ZonePnt->normal.x = *floatpnt++;
-				ZonePnt->normal.y = *floatpnt++;
-				ZonePnt->normal.z = *floatpnt++;
-				ZonePnt->offset   = *floatpnt++;
+				ZonePnt->normal.x = read_float( &floatpnt );
+				ZonePnt->normal.y = read_float( &floatpnt );
+				ZonePnt->normal.z = read_float( &floatpnt );
+				ZonePnt->offset   = read_float( &floatpnt );
 				ZonePnt++;
 			}
 			Buffer = (char*) floatpnt;

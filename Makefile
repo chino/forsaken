@@ -2,15 +2,44 @@
 # General Compiler Settings
 #
 
-# for cross compiling be sure to specify your compiler ex:
-# make CC=i686-mingw32-gcc
-CC=gcc
+# for cross compiling give the toolchain prefix (see README.md) ex:
+# make CROSS=aarch64-linux-gnu-
+# or the compiler ex: make CC=i686-mingw32-gcc
+CROSS=
+CC=$(CROSS)gcc
+
+# $(CROSS)pkg-config when it exists
+PKG_CONFIG?=$(if $(CROSS),$(shell command -v $(CROSS)pkg-config >/dev/null 2>&1 && \
+              echo $(CROSS)pkg-config || echo pkg-config),pkg-config)
+
+# board presets
+# OpenPandora: Cortex-A8, SDL 1.2, OpenGL ES 1.1 via EGL on the framebuffer
+ifeq ($(PANDORA),1)
+  GLES?=1
+  PROFILE?=0
+  FLAGS+= -mcpu=cortex-a8 -mfpu=neon -mfloat-abi=softfp
+  GLES_LIBS?= -lGLES_CM
+  PLATFORM_CFLAGS+= -DPANDORA -DHALF_SIZE_TEXTURES
+endif
+
+# Raspberry Pi with the legacy Broadcom VideoCore driver in /opt/vc
+# (current Raspberry Pi OS uses Mesa, there a plain build or GLES=1 works)
+ifeq ($(RPI),1)
+  VC?=/opt/vc
+  GLES?=1
+  PROFILE?=0
+  GLES_LIBS?= -L$(VC)/lib -lbrcmGLESv2
+  EGL_LIBS?= -L$(VC)/lib -lbrcmEGL -lbcm_host -lvcos -lvchiq_arm
+  PLATFORM_CFLAGS+= -DRPI -DHALF_SIZE_TEXTURES -I$(VC)/include \
+    -I$(VC)/include/interface/vcos/pthreads -I$(VC)/include/interface/vmcs_host/linux
+endif
 
 # general compiler settings
 ifeq ($(M32),1)
   FLAGS+= -m32
 endif
-FLAGS+= -std=gnu99 -pipe -fcommon
+# the code assumes char is signed like on x86, it isn't on ARM or PowerPC
+FLAGS+= -std=gnu99 -pipe -fcommon -fsigned-char
 CFLAGS=$(FLAGS) -Wall -Wextra
 LDFLAGS=$(FLAGS)
 
@@ -19,7 +48,7 @@ LDFLAGS=$(FLAGS)
 DEBUG=1
 
 # might as well leave gprof support on by default as well
-PROFILE=1
+PROFILE?=1
 
 # use this if you want to build everything statically
 STATIC=0
@@ -64,14 +93,14 @@ endif
 #
 
 # some systems use lua5.1
-LUA=$(shell pkg-config lua && echo lua || echo lua5.1)
+LUA=$(shell $(PKG_CONFIG) lua && echo lua || echo lua5.1)
 MACOSX=$(shell uname -a | grep -qi darwin && echo 1 || echo 0)
 
 # debian/ubuntu split luasocket's mime module into its own package
-LUA_MIME=$(shell pkg-config --exists $(LUA)-mime && echo $(LUA)-mime)
+LUA_MIME=$(shell $(PKG_CONFIG) --exists $(LUA)-mime && echo $(LUA)-mime)
 
 # which version of sdl do you want to ask pkgconfig for ?
-SDL=1
+SDL?=1
 ifeq ($(SDL),1)
   SDL_=sdl
 else
@@ -79,13 +108,27 @@ else
 endif
 
 # which version of GL do you want to use ?
-GL=1
+GL?=1
 
 $(if $(shell test "$(GL)" -ge 3 -a "$(SDL)" -lt 2 && echo fail), \
      $(error "GL >= 3 only supported with SDL >= 2"))
 
+# use OpenGL ES 1.1 instead of desktop OpenGL (ARM boards, phones...)
+# with SDL=2 SDL creates the context, with SDL=1 EGL is used directly.
+GLES?=0
+ifeq ($(GLES),1)
+  ifneq ($(GL),1)
+    $(error "GLES=1 is only supported with GL=1")
+  endif
+  GLES_CFLAGS?=$(shell $(PKG_CONFIG) --cflags glesv1_cm 2>/dev/null)
+  GLES_LIBS?=$(shell $(PKG_CONFIG) --libs glesv1_cm 2>/dev/null || echo -lGLESv1_CM)
+  EGL_LIBS?=$(shell $(PKG_CONFIG) --libs egl 2>/dev/null || echo -lEGL)
+  CFLAGS+= -DGLES $(GLES_CFLAGS)
+endif
+
 # library headers
-CFLAGS+= `pkg-config --cflags $(SDL_) $(LUA) $(LUA)-socket libenet libpng zlib openal`
+CFLAGS+= `$(PKG_CONFIG) --cflags $(SDL_) $(LUA) $(LUA)-socket libenet libpng zlib openal`
+CFLAGS+= $(PLATFORM_CFLAGS)
 ifeq ($(MACOSX),1)
   CFLAGS += -DMACOSX
 endif
@@ -98,13 +141,13 @@ ifeq ($(STATIC),1)
   LIB+= -Wl,-dn
   PKG_CFG_OPTS= --static
 endif
-LIB+= `pkg-config $(PKG_CFG_OPTS) --libs $(LUA) $(LUA)-socket $(LUA_MIME) libenet libpng zlib openal` -lm
+LIB+= `$(PKG_CONFIG) $(PKG_CFG_OPTS) --libs $(LUA) $(LUA)-socket $(LUA_MIME) libenet libpng zlib openal` -lm
 ifeq ($(STATIC),1)
   LIB+= -Wl,-dy
 endif
 
 # dynamic only libraries
-LIB+= `pkg-config --libs $(SDL_)`
+LIB+= `$(PKG_CONFIG) --libs $(SDL_)`
 ifeq ($(MINGW),1)
   CFLAGS += -DMINGW
   LIB += -L./mingw/bin
@@ -115,6 +158,11 @@ else ifeq ($(MACOSX),1)
   #LIB += -L/usr/X11/lib/ -lGL -lGLU
   LIB += -framework OpenGL # OpenGL bundle on OSX.
   LIB += -framework Cocoa  # Used to target Quartz by SDL_.
+else ifeq ($(GLES),1)
+  LIB += $(GLES_LIBS)
+  ifeq ($(SDL),1)
+    LIB += $(EGL_LIBS)
+  endif
 else
   LIB += -lGL -lGLU
 endif
@@ -192,6 +240,10 @@ check:
 	@echo "CROSS = $(CROSS)"
 	@echo "BOT = $(BOT)"
 	@echo "GL = $(GL)"
+	@echo "GLES = $(GLES)"
+	@echo "PANDORA = $(PANDORA)"
+	@echo "RPI = $(RPI)"
+	@echo "PKG_CONFIG = $(PKG_CONFIG)"
 	@echo "RENDER_DISABLED = $(RENDER_DISABLED)"
 	@echo "INPUT_DISABLED = $(INPUT_DISABLED)"
 	@echo "LUA = $(LUA)"
