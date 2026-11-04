@@ -4,6 +4,10 @@
 #include "render.h"
 #include "main_sdl.h"
 #include <SDL.h>
+#ifdef VR_OPENXR
+#include "vr.h"
+#include "title.h"
+#endif
 
 JOYSTICKINFO JoystickInfo[MAX_JOYSTICKS];
 
@@ -629,6 +633,10 @@ void app_joy_hat( SDL_JoyHatEvent * hat )
 #define joystick_name_for_index( I ) SDL_JoystickName( I )
 #endif
 
+#ifdef VR_OPENXR
+static void vr_joystick_add( void );
+#endif
+
 bool joysticks_init(void)
 {
 	int i, j, k;
@@ -751,8 +759,140 @@ bool joysticks_init(void)
 		}
 	}
 
+#ifdef VR_OPENXR
+	vr_joystick_add();
+#endif
+
 	return true;
 }
+
+#ifdef VR_OPENXR
+
+//////////////////////////////////////////////
+// Headset controllers, as one more joystick
+//////////////////////////////////////////////
+
+extern MENUSTATE MenuState;
+
+static int vr_joystick = -1;
+
+static void vr_joystick_add( void )
+{
+	JOYSTICKINFO * joy;
+	int j;
+
+	vr_joystick = -1;
+	if( !vr_active() || Num_Joysticks >= MAX_JOYSTICKS )
+		return;
+
+	vr_joystick = Num_Joysticks++;
+	joy = &JoystickInfo[ vr_joystick ];
+	joy->sdl_joy    = NULL;
+	joy->assigned   = false;
+	joy->connected  = true;
+	joy->NumAxis    = VR_AXES;
+	joy->NumButtons = VR_BUTTONS;
+	joy->NumPOVs    = 0;
+	joy->Name       = strdup( (char *) VR_JOYSTICK_NAME );
+
+	for( j = 0; j < VR_AXES; j++ )
+	{
+		joy->Axis[j].action   = SHIPACTION_Nothing;
+		joy->Axis[j].inverted = false;
+		joy->Axis[j].deadzone = 20;
+		joy->Axis[j].fine     = true;
+		joy->Axis[j].exists   = true;
+		joy->Axis[j].name     = strdup( (char *) vr_axis_names[j] );
+	}
+	for( j = 0; j < VR_BUTTONS; j++ )
+	{
+		joy->Button[j].action = SHIPACTION_Nothing;
+		joy->Button[j].name   = strdup( (char *) vr_button_names[j] );
+	}
+
+	DebugPrintf( "joysticks_init: joystick (%d), name='%s', axises=%d, buttons=%d\n",
+		vr_joystick, joy->Name, joy->NumAxis, joy->NumButtons );
+}
+
+// menus are driven by keys, so the controllers send some
+static void vr_menu_key( int key )
+{
+	input_buffer_send( key );
+}
+
+// Feed the controllers into the joystick state each frame, and into the
+// menus as key presses: stick or d-pad to move, A or the right trigger to
+// choose, B to go back. The menu button is Escape everywhere.
+static void vr_joystick_update( void )
+{
+	static vr_controllers_t last;
+	static Uint32 repeat_at = 0;
+	static int repeat_key = 0;
+	vr_controllers_t now;
+	int j, deadzone, key;
+	Uint32 ticks = SDL_GetTicks();
+
+	if( vr_joystick < 0 )
+		return;
+
+	vr_read_controllers( &now );	// all zero when there is nothing to read
+
+	for( j = 0; j < VR_AXES; j++ )
+	{
+		long value = (long) ( now.axis[j] * 100.0f );
+		deadzone = JoystickInfo[ vr_joystick ].Axis[j].deadzone;
+		joy_axis_state[ vr_joystick ][ j ] = ( labs( value ) > deadzone ) ? value : 0;
+	}
+
+	for( j = 0; j < VR_BUTTONS; j++ )
+	{
+		joy_button_state[ vr_joystick ][ j ] = now.button[j];
+		if( now.button[j] && !last.button[j] )
+			input_buffer_send( JOYSTICK_BUTTON_KEYCODE( vr_joystick, j ) );
+	}
+
+	if( now.button[ VR_BUTTON_MENU ] && !last.button[ VR_BUTTON_MENU ] )
+		vr_menu_key( SDLK_ESCAPE );
+
+	// leave the controls page alone while a button is being bound
+	if( CurrentMenu && MenuState != MENUSTATE_SelectKeydef )
+	{
+		if( ( now.button[ VR_BUTTON_A ] && !last.button[ VR_BUTTON_A ] ) ||
+		    ( now.button[ VR_BUTTON_RIGHT_TRIGGER ] && !last.button[ VR_BUTTON_RIGHT_TRIGGER ] ) )
+			vr_menu_key( SDLK_RETURN );
+		if( now.button[ VR_BUTTON_B ] && !last.button[ VR_BUTTON_B ] )
+			vr_menu_key( SDLK_ESCAPE );
+
+		// either stick, with key repeat
+		key = 0;
+		if( now.axis[ VR_AXIS_LEFT_Y ] < -0.6f || now.axis[ VR_AXIS_RIGHT_Y ] < -0.6f )
+			key = SDLK_UP;
+		else if( now.axis[ VR_AXIS_LEFT_Y ] > 0.6f || now.axis[ VR_AXIS_RIGHT_Y ] > 0.6f )
+			key = SDLK_DOWN;
+		else if( now.axis[ VR_AXIS_LEFT_X ] < -0.6f || now.axis[ VR_AXIS_RIGHT_X ] < -0.6f )
+			key = SDLK_LEFT;
+		else if( now.axis[ VR_AXIS_LEFT_X ] > 0.6f || now.axis[ VR_AXIS_RIGHT_X ] > 0.6f )
+			key = SDLK_RIGHT;
+		if( key != repeat_key )
+		{
+			repeat_key = key;
+			repeat_at = ticks + 400;
+			if( key )
+				vr_menu_key( key );
+		}
+		else if( key && (Sint32)( ticks - repeat_at ) >= 0 )
+		{
+			repeat_at = ticks + 120;
+			vr_menu_key( key );
+		}
+	}
+	else
+		repeat_key = 0;
+
+	last = now;
+}
+
+#endif // VR_OPENXR
 
 bool joysticks_cleanup( void )
 {
@@ -983,6 +1123,10 @@ bool handle_events( void )
 	}
 
 	//DebugPrintf("DONE processing events\n");
+
+#if defined( VR_OPENXR ) && !defined( DINPUTJOY )
+	vr_joystick_update();
+#endif
 
 	if ( quitting )
 	{

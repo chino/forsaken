@@ -222,11 +222,37 @@ else
   MUSIC_FLAC=0
 endif
 
+# OpenXR head mounted display support, built in when the OpenXR headers
+# (libopenxr-dev) are found; VR=0 leaves it out. The loader is opened at
+# run time and only with -vr, so the binary does not depend on it; without
+# a loader, runtime or headset the game stays on the desktop. See docs/VR.md.
+ifeq ($(MACOSX)$(RENDER_DISABLED)$(GLES),00)
+  VR_PKGS=openxr $(if $(filter 1,$(MINGW)),,x11)
+  VR:=$(shell $(PKG_CONFIG) --exists $(VR_PKGS) && echo 1 || echo 0)
+endif
+ifeq ($(VR),1)
+  ifeq ($(RENDER_DISABLED),1)
+    $(error "VR=1 needs a GL renderer")
+  endif
+  ifeq ($(GLES),1)
+    $(error "VR=1 needs desktop OpenGL, not GLES")
+  endif
+  CFLAGS += -DVR_OPENXR `$(PKG_CONFIG) --cflags openxr`
+  ifneq ($(MINGW),1)
+    ifneq ($(MACOSX),1)
+      LIB += `$(PKG_CONFIG) --libs x11`
+    endif
+  endif
+endif
+
 
 INC=$(wildcard *.h)
 SRC=$(wildcard *.c)
 ifneq ($(LUA),1)
   SRC:=$(filter-out lua_%.c,$(SRC))
+endif
+ifneq ($(VR),1)
+  SRC:=$(filter-out vr_openxr.c,$(SRC))
 endif
 OBJ=$(patsubst %.c,%.o,$(SRC))
 
@@ -277,6 +303,7 @@ check:
 	@echo "LUA_PKG = $(LUA_PKG)"
 	@echo "SDL = $(SDL)"
 	@echo "SDL_ = $(SDL_)"
+	@echo "VR = $(VR)"
 	@echo
 	@echo "CC = $(CC)"
 	@echo "BIN = $(BIN)"

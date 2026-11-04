@@ -76,6 +76,9 @@ typedef struct {
 
 typedef bool (*RenderCurrentCameraPt) (void);
 bool RenderCurrentCameraInStereo( RenderCurrentCameraPt );
+#ifdef VR_OPENXR
+bool RenderCurrentCameraInVR( RenderCurrentCameraPt );
+#endif
 
 
 #undef RELEASE

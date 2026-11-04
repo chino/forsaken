@@ -36,3 +36,8 @@ target libraries, for example:
     make CROSS=aarch64-linux-gnu- SDL=2 GLES=1
 
 `$(CROSS)pkg-config` is used when it exists, `PKG_CONFIG=` overrides it.
+
+## Virtual reality
+
+Builds made where the OpenXR headers are installed can render to a VR headset
+through OpenXR when started with `-vr`. See [docs/VR.md](docs/VR.md).

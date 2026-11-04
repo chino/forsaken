@@ -58,6 +58,9 @@
 #include "render.h"
 #include "input.h"
 #include "oct2.h"
+#ifdef VR_OPENXR
+#include "vr.h"
+#endif
 
 #ifdef SHADOWTEST
 #include "triangles.h"
@@ -4201,6 +4204,135 @@ bool RenderCurrentCameraInStereo( RenderCurrentCameraPt render_camera )
 }
 
 void DrawFrameRateInfo(void);
+#ifdef VR_OPENXR
+
+/*===================================================================
+  Headset rendering. Based on RenderCurrentCameraInVR() in Forsaken VR
+  (GameOrDie007/Forsaken-VR), source/oct2.c.
+
+  The engine's matrices map column vectors (see ApplyMatrix): Mat takes
+  camera space to world space, left handed, +z forward, +y up, +x right.
+  OpenXR is right handed with -z forward, so its rotations are mirrored
+  through the z axis on the way in.
+===================================================================*/
+
+static void VRHeadMatrix( const float * q, MATRIX * m )
+{
+	float x = q[ 0 ], y = q[ 1 ], z = q[ 2 ], w = q[ 3 ];
+
+	memset( m, 0, sizeof( *m ) );
+	m->_11 = 1.0f - 2.0f * ( y * y + z * z );
+	m->_12 = 2.0f * ( x * y - z * w );
+	m->_13 = -( 2.0f * ( x * z + y * w ) );
+	m->_21 = 2.0f * ( x * y + z * w );
+	m->_22 = 1.0f - 2.0f * ( x * x + z * z );
+	m->_23 = -( 2.0f * ( y * z - x * w ) );
+	m->_31 = -( 2.0f * ( x * z - y * w ) );
+	m->_32 = -( 2.0f * ( y * z + x * w ) );
+	m->_33 = 1.0f - 2.0f * ( x * x + y * y );
+	m->_44 = 1.0f;
+}
+
+// rotation part only: c = a * b
+static void VRRotationMultiply( const MATRIX * a, const MATRIX * b, MATRIX * c )
+{
+	const float * A[ 3 ] = { &a->_11, &a->_21, &a->_31 };
+	const float * B[ 3 ] = { &b->_11, &b->_21, &b->_31 };
+	float * C[ 3 ] = { &c->_11, &c->_21, &c->_31 };
+	int r, k, j;
+
+	memset( c, 0, sizeof( *c ) );
+	for( r = 0; r < 3; r++ )
+		for( j = 0; j < 3; j++ )
+			for( k = 0; k < 3; k++ )
+				C[ r ][ j ] += A[ r ][ k ] * B[ k ][ j ];
+	c->_44 = 1.0f;
+}
+
+// Off centre perspective from the eye's field of view tangents, in the same
+// row vector, z 0..1 form SetFOV() builds.
+static void VREyeProjection( const vr_view_t * v, RENDERMATRIX * p )
+{
+	float w = v->tan_right - v->tan_left;
+	float h = v->tan_up - v->tan_down;
+
+	memset( p, 0, sizeof( *p ) );
+	p->_11 = RENDERVAL( 2.0f / w );
+	p->_22 = RENDERVAL( 2.0f / h );
+	p->_31 = RENDERVAL( -( v->tan_right + v->tan_left ) / w );
+	p->_32 = RENDERVAL( -( v->tan_up + v->tan_down ) / h );
+	p->_33 = RENDERVAL( Far / ( Far - Near ) );
+	p->_34 = RENDERVAL( 1.0 );
+	p->_43 = RENDERVAL( -Far * Near / ( Far - Near ) );
+	p->_44 = RENDERVAL( 0.0 );
+}
+
+/*===================================================================
+  Procedure :   Render the current camera once per eye into the headset.
+                The head turns and moves inside the cockpit: its pose is
+                applied on top of the camera's own orientation.
+  Input   :     the camera render function (world only, no 2D)
+  Output    :   bool true/false
+===================================================================*/
+bool RenderCurrentCameraInVR( RenderCurrentCameraPt render_camera )
+{
+	CAMERA saved = CurrentCamera;
+	RENDERMATRIX saved_proj = proj;
+	int eye;
+	bool ok = true;
+
+	// the left eye is drawn last so it is left over for the desktop mirror
+	for( eye = VR_EYES - 1; eye >= 0 && ok; eye-- )
+	{
+		const vr_view_t * v = vr_view( eye );
+		MATRIX head;
+		VECTOR offset, world;
+
+		VRHeadMatrix( v->quat, &head );
+		VRRotationMultiply( &saved.Mat, &head, &CurrentCamera.Mat );
+		MatrixTranspose( &CurrentCamera.Mat, &CurrentCamera.InvMat );
+
+		// eye position in metres -> world units, through the camera's rotation
+		offset.x =  v->pos[ 0 ] * vr_world_scale;
+		offset.y =  v->pos[ 1 ] * vr_world_scale;
+		offset.z = -v->pos[ 2 ] * vr_world_scale;
+		world.x = saved.Mat._11 * offset.x + saved.Mat._12 * offset.y + saved.Mat._13 * offset.z;
+		world.y = saved.Mat._21 * offset.x + saved.Mat._22 * offset.y + saved.Mat._23 * offset.z;
+		world.z = saved.Mat._31 * offset.x + saved.Mat._32 * offset.y + saved.Mat._33 * offset.z;
+		CurrentCamera.Pos.x = saved.Pos.x + world.x;
+		CurrentCamera.Pos.y = saved.Pos.y + world.y;
+		CurrentCamera.Pos.z = saved.Pos.z + world.z;
+
+		// the whole eye, whatever size the desktop view has been set to
+		CurrentCamera.Viewport.X = 0;
+		CurrentCamera.Viewport.Y = 0;
+		CurrentCamera.Viewport.Width = render_info.ThisMode.w;
+		CurrentCamera.Viewport.Height = render_info.ThisMode.h;
+		CurrentCamera.Viewport.ScaleX = CurrentCamera.Viewport.Width / 2.0F;
+		CurrentCamera.Viewport.ScaleY = CurrentCamera.Viewport.Height / 2.0F;
+
+		// visi.c projects each visible group from CurrentCamera.Proj
+		VREyeProjection( v, &proj );
+		CurrentCamera.Proj = proj;
+		FSSetProjection( &proj );
+
+		// the real eye positions already give the parallax
+		render_info.stereo_position = ST_CENTER;
+
+		vr_eye_begin( eye );
+		ok = render_camera();
+		vr_eye_end( eye );
+	}
+
+	CurrentCamera = saved;
+	proj = saved_proj;
+	FSSetProjection( &proj );
+	FSSetViewPort( &viewport );
+	return ok;
+}
+
+#endif // VR_OPENXR
+
 void DrawMainGameMenu(void)
 {
     if( CurrentMenu && CurrentMenuItem )
@@ -4282,6 +4414,17 @@ bool MainGameRender(void)
 
       CurrentCamera.UseLowestLOD = false;
 
+#ifdef VR_OPENXR
+      // the world in the headset, the HUD and menu on its panel
+      if( vr_views_valid() )
+      {
+				if(!RenderCurrentCameraInVR(RenderCurrentCamera))
+					return false;
+				DrawMainGameMenu();
+				RenderMainCamera2dPolys();
+      }
+      else
+#endif
       if( render_info.stereo_enabled )
       {
 				if(!RenderCurrentCameraInStereo(RenderCurrentCameraWithMainGameMenu))

@@ -1,5 +1,8 @@
 #ifdef GL
 #include "render_gl_shared.h"
+#ifdef VR_OPENXR
+#include "vr.h"
+#endif
 
 // windows needs explicit retrieval of newer GL functions...
 /*
@@ -780,6 +783,12 @@ bool FSClear(XYRECT * rect)
 	int height = rect->y2 - rect->y1;
 	int x = rect->x1;
 	int y = render_info.ThisMode.h - rect->y1 - height;
+#ifdef VR_OPENXR
+	int surface_h = render_info.ThisMode.h;
+	y = rect->y1;
+	vr_scale_rect( &x, &y, &width, &height, &surface_h );
+	y = surface_h - y - height;
+#endif
 	// here we employ a stencil buffer so that we
 	// only clear the desired part of the screen
 	glEnable(GL_SCISSOR_TEST);
@@ -814,6 +823,14 @@ bool FSGetViewPort(render_viewport_t *view)
 	// scalex/y are not modified here
 	// xywh
 	glGetIntegerv( GL_VIEWPORT, i );
+#ifdef VR_OPENXR
+	{
+		int x = i[0], w = i[2], h = i[3], sh = vr_surface_height();
+		int y = sh - (i[1] + i[3]);
+		vr_unscale_rect( &x, &y, &w, &h, &sh );
+		i[0] = x; i[1] = render_info.ThisMode.h - (y + h); i[2] = w; i[3] = h;
+	}
+#endif
 	view->X	= i[0];
 	view->Y	= render_info.ThisMode.h - (i[1] + i[3]);
 	view->Width	= i[2];
@@ -835,8 +852,15 @@ bool FSSetViewPort(render_viewport_t *view)
 {
 	// render_viewport_t x/y starts top/left
 	// but glViewport starts from bottom/left
+#ifdef VR_OPENXR
+	int x = view->X, y = view->Y, w = view->Width, h = view->Height;
+	int surface_h = render_info.ThisMode.h;
+	vr_scale_rect( &x, &y, &w, &h, &surface_h );
+	glViewport( x, surface_h - (y + h), w, h );
+#else
 	int bottom = render_info.ThisMode.h - (view->Y + view->Height);
 	glViewport(	view->X, bottom, (GLint) view->Width, (GLint) view->Height	);
+#endif
 	// sets the min/max depth values to render
 	// default is max 1.0f and min 0.0f
 	// this is here for compatibility with d3d9
