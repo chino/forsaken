@@ -121,7 +121,7 @@ extern bool NoSFX;
 extern float normal_fov;
 extern float UV_Fix;
 extern int NetUpdateIntervalCmdLine;
-extern char *config_name;
+extern char config_name[];
 extern int cliSleep;
 extern TEXT local_port_str;
 extern bool SpaceOrbSetup;
@@ -292,7 +292,12 @@ static bool ParseCommandLine(char* lpCmdLine)
 			else if ( sscanf( option, "sleep:%d", &cliSleep )){}
 
 			// select the pilot
-			else if ( sscanf( option , "pilot:%s", config_name )){}
+			// config_name used to be a NULL pointer here: glibc quietly ignored
+			// the option but on windows the write crashed the game at startup
+			else if ( sscanf( option , "pilot:%255s", config_name ) == 1 )
+			{
+				DebugPrintf("cli: pilot set to %s\n", config_name);
+			}
 
 			// set the packets per second
 			else if ( sscanf( option, "PPS:%d", &NetUpdateIntervalCmdLine ) ){}

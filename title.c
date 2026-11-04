@@ -218,7 +218,8 @@ extern	int16_t		NumLevels;
 #define REGISTRY_EXPIRE_TIME	"ServiceID"
 #define DEFAULT_CONFIG_FILE		DEFAULT_PLAYER_NAME".txt"
 
-char	*config_name = NULL;
+// pilot given on the command line with -pilot:<name>, empty if none
+char	config_name[256] = "";
 char	old_config[256] = "";
 char	biker_config[256] = DEFAULT_CONFIG_FILE;
 char	biker_name[256] = DEFAULT_PLAYER_NAME;
@@ -8099,7 +8100,23 @@ void GetDefaultPilot(void)
 	// did we find a player name ?
 	bool found = false;
 
-	config_get_strncpy( &pilot_name[0], size, "PlayerName", "" );
+	// a pilot named on the command line wins over the last one used
+	if ( config_name[ 0 ] )
+	{
+		char *name = config_name;
+
+		// accept a path or a file name too: pilots live in pilots\<name>.txt
+		if ( ( strptr = strrchr( name, '\\' ) ) )
+			name = strptr + 1;
+		if ( ( strptr = strrchr( name, '/' ) ) )
+			name = strptr + 1;
+		strncpy( pilot_name, name, size - 1 );
+		strptr = strrchr( pilot_name, '.' );
+		if ( strptr && !strcasecmp( strptr, ".txt" ) )
+			*strptr = 0;
+	}
+	else
+		config_get_strncpy( &pilot_name[0], size, "PlayerName", "" );
 
 	// get the PlayerName from registry
 	if ( strlen(pilot_name) )
