@@ -497,7 +497,7 @@ void app_joy_button( SDL_JoyButtonEvent * button )
 	if(  button->type == SDL_JOYBUTTONDOWN )
 	{
 		input_buffer_send(
-			JOYSTICK_BUTTON_KEYCODE( button->which, button->button )
+			JOYSTICK_BUTTON_KEYCODE( joy, button->button )
 		);
 	}
 }
