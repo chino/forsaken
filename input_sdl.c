@@ -225,6 +225,40 @@ void app_quit( void )
 // Keyboard Events
 //////////////////////////////////////////////
 
+#if SDL_VERSION_ATLEAST(2,0,0)
+static SDL_Scancode last_key_scancode = SDL_SCANCODE_UNKNOWN;
+
+// sdl2 replacement for keysym.unicode: feed typed characters to the menus
+// the same way sdl 1.2 did. only plain ascii is understood by the game.
+static void app_text_input( SDL_TextInputEvent * text )
+{
+	const unsigned char * c;
+	for( c = (const unsigned char *) text->text; *c; c++ )
+		if( *c >= ' ' && *c < 127 )
+			input_buffer_send( *c );
+}
+#endif
+
+// convert a code from the input buffer into the form stored in the
+// control tables: on sdl2 keyboard bindings are scancodes (see
+// sdl2_scancode_keys.h) while the input buffer carries key codes and
+// characters, mouse and joystick codes are the same on both.
+int input_binding_code( int code )
+{
+#if SDL_VERSION_ATLEAST(2,0,0)
+	if( code > 0 && ( ( code & SDLK_SCANCODE_MASK ) || KEY_ON_KEYBOARD( code ) ) )
+	{
+		SDL_Scancode sc = SDL_GetScancodeFromKey( (SDL_Keycode) code );
+		// shifted characters ('A', '!') have no key of their own,
+		// use the key that was physically pressed
+		if( sc == SDL_SCANCODE_UNKNOWN )
+			sc = last_key_scancode;
+		return (int) sc;
+	}
+#endif
+	return code;
+}
+
 void app_keyboard( SDL_KeyboardEvent * key )
 {
 	if( key->type == SDL_KEYUP )
@@ -248,9 +282,14 @@ void app_keyboard( SDL_KeyboardEvent * key )
 	if( key->type == SDL_KEYDOWN )
 	{
 #if SDL_VERSION_ATLEAST(2,0,0)
-		// sdl2 dropped keysym.unicode, the raw key symbol is what the
-		// menu and binding code compares against anyway
-		input_buffer_send( key->keysym.sym );
+		last_key_scancode = key->keysym.scancode;
+		// sdl2 dropped keysym.unicode: printable characters arrive as
+		// SDL_TEXTINPUT (see app_text_input) while text input is active,
+		// everything else is sent as the key code like sdl 1.2 did
+		if( !SDL_IsTextInputActive() ||
+		    key->keysym.sym < ' ' || key->keysym.sym >= 127 ||
+		    ( key->keysym.mod & ( KMOD_CTRL | KMOD_ALT | KMOD_GUI ) ) )
+			input_buffer_send( key->keysym.sym );
 #else
 		input_buffer_send(
 			key->keysym.unicode ?
@@ -868,6 +907,14 @@ bool handle_events( void )
 			break;
 
 #if SDL_VERSION_ATLEAST(2,0,0)
+		case SDL_TEXTINPUT:
+			app_text_input( &_event.text );
+			break;
+
+		case SDL_TEXTEDITING:
+		case SDL_KEYMAPCHANGED:
+			break;
+
 		// sdl2 reports every pad present at startup as a hot plug event
 		case SDL_JOYDEVICEADDED:
 			DebugPrintf("sdl_input: joystick device %d added\n", _event.jdevice.which);
