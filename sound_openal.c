@@ -284,6 +284,7 @@ sound_buffer_t * sound_load(char *path)
 	ALenum error;
 	ALenum format;
 	SDL_AudioSpec wav_spec;
+	Uint32 wav_length;
 	u_int8_t *wav_buffer;
 	sound_buffer_t * buffer;
 	char * file_path = convert_path(path);
@@ -309,13 +310,17 @@ sound_buffer_t * sound_load(char *path)
 		return NULL;
 	}
 
-	if( SDL_LoadWAV(file_path, &wav_spec, &wav_buffer, &wav_spec.size) == NULL )
+	// the length must not go into wav_spec.size: SDL_LoadWAV fills in
+	// wav_spec itself, the two alias and with SDL2 every buffer came back
+	// with a zero length (silent, and no AL error)
+	if( SDL_LoadWAV(file_path, &wav_spec, &wav_buffer, &wav_length) == NULL )
 	{
 		DebugPrintf("Could not open: %s\n", SDL_GetError());
 		alDeleteBuffers( 1, &buffer->id );
 		free(buffer);
 		return NULL;
 	}
+	wav_spec.size = wav_length;
 
 	if(wav_spec.format == AUDIO_U8 || wav_spec.format == AUDIO_S8) // 8 bit
 	{
