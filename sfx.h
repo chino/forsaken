@@ -288,6 +288,7 @@ u_int32_t PlayFixedSpotSfx(int16_t Sfx, u_int16_t Group , VECTOR * SfxPos, float
 void KillCompoundSfxBuffer( int buffer );
 FILE *SaveAllSfx( FILE *fp );
 FILE *LoadAllSfx( FILE *fp );
+void LoadAllSfxDone( void );
 void PauseAllSfx( void );
 void ReTriggerSfx( void );
 void GetFullSfxPath( char *fullpath, int sfxnum, int variant, int total_variants );
