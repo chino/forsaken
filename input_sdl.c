@@ -42,6 +42,7 @@ void input_grab( bool grab )
 		input_grabbed = true;
 #if SDL_VERSION_ATLEAST(2,0,0)
 		SDL_SetWindowGrab( render_info.window, SDL_TRUE );
+		SDL_SetRelativeMouseMode( SDL_TRUE );
 #else
 		SDL_WM_GrabInput( SDL_GRAB_ON );
 #endif
@@ -57,6 +58,8 @@ void input_grab( bool grab )
 #else
 	#if SDL_VERSION_ATLEAST(2,0,0)
 	SDL_SetWindowGrab( render_info.window, grab ? SDL_TRUE : SDL_FALSE );
+	// keep reporting motion at the window edge, sdl 1.2 did this when grabbed
+	SDL_SetRelativeMouseMode( grab ? SDL_TRUE : SDL_FALSE );
 	#else
 	SDL_WM_GrabInput( grab ? SDL_GRAB_ON : SDL_GRAB_OFF );
 	#endif
