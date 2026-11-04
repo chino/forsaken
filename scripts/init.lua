@@ -38,7 +38,17 @@ end
 function init( debug )
 
 	-- tell require() to look in ./Scripts/*
-	package.path = "./scripts/?.lua;" .. package.path
+	--
+	-- the bundled socket/mime/ltn12 lua modules are the 2.0 series and
+	-- only work with a 2.0 socket.core.  when we were linked against a
+	-- newer system luasocket keep its own lua modules ahead of ours.
+	local core = require("socket.core")
+	local version = core and core._VERSION or ""
+	if string.match(version, "^LuaSocket 2%.") then
+		package.path = "./scripts/?.lua;" .. package.path
+	else
+		package.path = package.path .. ";./scripts/?.lua"
+	end
 
 	-- globals
 	config = {} -- main config table

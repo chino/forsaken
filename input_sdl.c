@@ -247,11 +247,17 @@ void app_keyboard( SDL_KeyboardEvent * key )
 	}
 	if( key->type == SDL_KEYDOWN )
 	{
+#if SDL_VERSION_ATLEAST(2,0,0)
+		// sdl2 dropped keysym.unicode, the raw key symbol is what the
+		// menu and binding code compares against anyway
+		input_buffer_send( key->keysym.sym );
+#else
 		input_buffer_send(
-			key->keysym.unicode ? 
+			key->keysym.unicode ?
 				key->keysym.unicode :
 				key->keysym.sym
 		);
+#endif
 	}
 }
 
