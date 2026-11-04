@@ -31,6 +31,14 @@ extern float vr_world_scale;
 // percentage of the runtime's recommended eye resolution. -vrres:N
 extern int vr_res_scale;
 
+// comfort: the controllers' turn and pitch rate as a percentage of the
+// game's (VRTurnSpeed), ease the ship back level when not rolling even if
+// the pilot's autoleveling is off (VRAutoLevel) and the idle drift of our
+// own ship (VRShipBob)
+extern int vr_turn_speed;
+extern bool vr_auto_level;
+extern bool vr_ship_bob;
+
 // bring up OpenXR. call once the GL context is current.
 // returns false (having logged why) when the game should stay on the desktop.
 bool vr_init( void );

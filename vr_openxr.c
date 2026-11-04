@@ -46,6 +46,9 @@
 bool  vr_requested   = false;
 float vr_world_scale = 30.0f;	// see -vrscale in main.c
 int   vr_res_scale   = 100;		// see -vrres in main.c
+int   vr_turn_speed  = 100;
+bool  vr_auto_level  = false;
+bool  vr_ship_bob    = true;
 
 // the panel the HUD and menus are drawn on, in metres
 #define PANEL_WIDTH	2.0f

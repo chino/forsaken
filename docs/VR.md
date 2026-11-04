@@ -53,6 +53,14 @@ Options:
 | `-vrscale:N`   | 30      | World units per metre. Bigger makes the world feel smaller. |
 | `-vrres:N`     | 100     | Eye resolution as a percentage of what the runtime recommends (10 to 400). |
 
+Comfort settings, in the config file:
+
+| Setting            | Default | |
+|--------------------|---------|-|
+| `VRTurnSpeed = N`  | 100     | How fast the controllers turn and pitch the ship, as a percentage of the game's rate. |
+| `VRAutoLevel = true` | false | Ease the ship back level when you are not rolling, even if the pilot's own autoleveling is off. |
+| `VRShipBob = false`  | true  | Stop the gentle drift of your ship at rest, which moves the whole view in a headset. |
+
 ## What you get
 
 - The 3D world in stereo with the runtime's per-eye field of view. Your head
@@ -109,4 +117,4 @@ simulated headset's left eye. The simulated device has no controllers.
 - Changing the video mode while in VR is not supported; restart instead.
 - The rear view and missile camera pictures are drawn on the HUD panel, so
   they are see-through like the rest of the HUD.
-- No haptics, controller aiming or comfort options yet; see Forsaken VR for those.
+- No haptics or controller aiming yet; see Forsaken VR for those.

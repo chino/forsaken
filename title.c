@@ -9330,6 +9330,9 @@ void GetGamePrefs( void )
 	render_info.fullscreen			 = config_get_bool( "FullScreen",				false );
 #ifdef VR_OPENXR
 	vr_requested					 = config_get_bool( "VR",						false );
+	vr_turn_speed					 = config_get_int( "VRTurnSpeed",				100 );
+	vr_auto_level					 = config_get_bool( "VRAutoLevel",				false );
+	vr_ship_bob						 = config_get_bool( "VRShipBob",				true );
 #endif
 
 	memset( MyPickupValid, 0, sizeof(MyPickupValid) );
