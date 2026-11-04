@@ -3440,16 +3440,16 @@ bool CheckValidRegenSlot( int16_t Slot )
 	/* set it to be used even though its really not
 	   so we don't assign a pickup to it again */
 
+	/* if you are host add pickup thats in the slot to regen list */
+	if( ( IsHost ) && FilterPickup( RegenPoints[ Slot ].Type ) )
+		AddPickupToRegen( RegenPoints[ Slot ].Type );
+
 	RegenPoints[ Slot ].Status = PU_REGENSTAT_Used;
 	RegenPoints[ Slot ].Wait = 0.0F;
 	RegenPoints[ Slot ].Type = (u_int16_t) -1;
 
-	/* if you are host add pickup thats in the slot to regen list */
-	if( ( IsHost ) )
-		AddPickupToRegen( RegenPoints[ Slot ].Type );
-
 	/* let people know the pic file is messed up! */
-    DebugPrintf("pickups: Bad regen point detected! The PIC file needs to be fixed!\n");
+    DebugPrintf("pickups: Bad regen point %d detected! The PIC file needs to be fixed!\n", Slot);
 
 	/* failed */
 	return( false );
