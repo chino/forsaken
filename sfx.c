@@ -174,7 +174,7 @@ u_int32_t TauntID = 0;
 bool TauntUpdatable = false;
 //float TauntDist = 0.0F;
 char CurrentTauntVariant;
-#define MAX_ANY_SFX 256 // openal soft max is 256 so this feels good
+#define MAX_ANY_SFX 512 // sound_init() asks openal for as many sources
 
 SFXNAME	Sfx_Filenames[MAX_SFX] =
 {
@@ -414,6 +414,8 @@ typedef struct
         int16_t TriggerSfx;
         bool OnPause;
         float PauseValue;
+	bool Paused;
+	float Distance;
 	int SfxBufferIndex;
 	sound_source_t * source;
 } SFX_HOLDER;
@@ -508,7 +510,7 @@ typedef struct _SPOT_SFX_LIST
 	u_int32_t   uid;
 } SPOT_SFX_LIST;
 
-#define MAX_LOOPING_SFX 64
+#define MAX_LOOPING_SFX 128
 SPOT_SFX_LIST SpotSfxList[ MAX_LOOPING_SFX ];
 
 int sfxref = 0;
@@ -544,6 +546,7 @@ extern LIST BikeComputerList;
 Fn Prototypes
 *****************************************/
 void InitSfxHolders( void );
+int GetSfxHolderIndex( u_int32_t uid );
 
 typedef struct
 {
@@ -1227,32 +1230,24 @@ int16_t EssentialSfx[ NUM_ESSENTIAL_SFX ] = {
 	SFX_Select_Trojax,				//	-	trojax
 };
 
+// pause everything that is playing, ReTriggerSfx() resumes it
 void PauseAllSfx( void )
 {
-	u_int16_t i;
-	SPOT_SFX_LIST temp;
-	
-	// looping sfx info has to be stored for later retriggering
-	for ( i = 0; i < MAX_LOOPING_SFX; i++ )
-	{
-		if ( SpotSfxList[ i ].used )
-		{
-			temp = SpotSfxList[ i ];
-			// StopSfx will free the source
-			// so we can't leave the old pointer here 
-			temp.source = NULL;
-			StopSfx( SpotSfxList[ i ].uid );
-			SpotSfxList[ i ] = temp;
-		}
-	}
+	int i;
 
 	for( i = 0; i < MAX_ANY_SFX; i++ )
 	{
-		if ( SfxHolder[ i ].Used )
+		if ( SfxHolder[ i ].Used && SfxHolder[ i ].source && sound_is_playing( SfxHolder[ i ].source ) )
 		{
-			StopSfx( SfxHolder[ i ].UniqueID );
+			sound_pause( SfxHolder[ i ].source );
+			SfxHolder[ i ].Paused = true;
 		}
 	}
+
+	// ProcessLoopingSfx() plays these again
+	for ( i = 0; i < MAX_LOOPING_SFX; i++ )
+		if ( SpotSfxList[ i ].used && SpotSfxList[ i ].source )
+			sound_pause( SpotSfxList[ i ].source );
 }
 
 // stop every sfx and forget the looping ones, nothing gets restarted later
@@ -1363,10 +1358,25 @@ void ReTriggerSfx( void )
 	SPOT_SFX_LIST temp;
 	u_int32_t tempuid;
 	u_int16_t i, j;
+	int holder;
 
-	// re-trigger all existing looping sfx...
+	// resume paused sfx...
+	for ( i = 0; i < MAX_ANY_SFX; i++ )
+	{
+		if ( SfxHolder[ i ].Used && SfxHolder[ i ].Paused )
+		{
+			sound_play( SfxHolder[ i ].source );
+			SfxHolder[ i ].Paused = false;
+		}
+	}
+
+	// re-trigger all existing looping sfx that lost their holder...
 	for ( i = 0; i < MAX_LOOPING_SFX; i++ )
 	{
+		holder = GetSfxHolderIndex( SpotSfxList[ i ].uid );
+		if ( holder != -1 && SfxHolder[ holder ].SfxBufferIndex == i )
+			continue;
+
 		if ( SpotSfxList[ i ].used )
 		{
 			temp = SpotSfxList[ i ];
@@ -1928,6 +1938,31 @@ void SetPannedSourceParams( void* sound_source, VECTOR *SfxPos, float Freq, VECT
 #define SPEECH_AMPLIFY	( 1.0F / GLOBAL_MAX_SFX )
 #define SFX_2D 2
 
+// out of holders or sources: free the furthest (then oldest) one shot sfx
+// that is at least as far away as the one we want to play
+static bool StealSfx( float Distance )
+{
+	int i, victim = -1;
+
+	for( i = 0; i < MAX_ANY_SFX; i++ )
+	{
+		if ( !SfxHolder[ i ].Used || !SfxHolder[ i ].source ||
+			SfxHolder[ i ].SfxFlags != SFX_HOLDERTYPE_Dynamic ||
+			SfxHolder[ i ].Paused || SfxHolder[ i ].OnPause || SfxHolder[ i ].Distance < Distance ||
+			SfxHolder[ i ].UniqueID == CurrentBikerSpeech ||
+			SfxHolder[ i ].UniqueID == CurrentBikeCompSpeech )
+			continue;
+		if ( victim < 0 || SfxHolder[ i ].Distance > SfxHolder[ victim ].Distance ||
+			( SfxHolder[ i ].Distance == SfxHolder[ victim ].Distance &&
+			SfxHolder[ i ].UniqueID < SfxHolder[ victim ].UniqueID ) )
+			victim = i;
+	}
+	if ( victim < 0 )
+		return false;
+	FreeSfxHolder( victim );
+	return true;
+}
+
 bool StartPannedSfx(int16_t Sfx, u_int16_t *Group , VECTOR * SfxPos, float Freq, int type, int HolderIndex, float VolModify, u_int16_t Effects, bool OverideDistanceCheck )
 {
 	VECTOR	Temp;
@@ -2065,6 +2100,7 @@ bool StartPannedSfx(int16_t Sfx, u_int16_t *Group , VECTOR * SfxPos, float Freq,
 	}
 
 	LastDistance[Sfx] = Distance;
+	SfxHolder[ HolderIndex ].Distance = Distance;
 
 	//DebugPrintf("sfx passing %d\n",Sfx);
 
@@ -2098,7 +2134,8 @@ bool StartPannedSfx(int16_t Sfx, u_int16_t *Group , VECTOR * SfxPos, float Freq,
 			file = SfxFullPath[ Sfx ][ Random_Range( SndLookup[ Sfx ].Num_Variants )];
 		}
 		
-		if( ! (SfxHolder[ HolderIndex ].source = sound_source_create( file, Sfx )) )
+		if( ! (SfxHolder[ HolderIndex ].source = sound_source_create( file, Sfx )) &&
+			( ! StealSfx( Distance ) || ! (SfxHolder[ HolderIndex ].source = sound_source_create( file, Sfx )) ) )
 			return false;
 
 		if ( _type == SFX_TYPE_Normal )
@@ -2139,8 +2176,6 @@ void InitSfxHolders( void )
 	BikerSpeechPlaying = false;
 }
 
-// TODO we should probably find the farthest sound and kill it? 
-// isn't this done already in looping sfx or somewhere else ?
 int FindFreeSfxHolder( void )
 {
 	int i;
@@ -2152,14 +2187,18 @@ int FindFreeSfxHolder( void )
 			SfxHolder[ i ].Used = true;
 			SfxHolder[ i ].UniqueID = SfxUniqueID++;
 			SfxHolder[ i ].OnPause = false;
+			SfxHolder[ i ].Paused = false;
 			SfxHolder[ i ].SndObjIndex = -1;
 			SfxHolder[ i ].SfxFlags = -1;
 			SfxHolder[ i ].SfxBufferIndex = -1;
 			SfxHolder[ i ].TriggerSfx = -1;
 			SfxHolder[ i ].PauseValue = 0.0F;
+			SfxHolder[ i ].Distance = 0.0F;
 			return i;
 		}
 	}
+	if ( StealSfx( 0.0F ) )
+		return FindFreeSfxHolder();
 	return -1;
 }
 
@@ -2435,6 +2474,9 @@ void CheckSBufferList( void )
 	for( i = 0; i < MAX_ANY_SFX; i++ )
 	{
 		if ( ! SfxHolder[ i ].Used )
+			continue;
+
+		if ( SfxHolder[ i ].Paused )
 			continue;
 
 		if ( SfxHolder[ i ].OnPause )
@@ -2792,7 +2834,8 @@ void ProcessLoopingSfx( void )
 			// TODO - this should probably be done right away in InitLoopingSfx()
 			int index = SpotSfxList[ i ].sfxindex +	SpotSfxList[ i ].variant;
 
-			if( ! (SpotSfxList[ i ].source = sound_source_create( file, index )) )
+			if( ! (SpotSfxList[ i ].source = sound_source_create( file, index )) &&
+				( ! StealSfx( Distance ) || ! (SpotSfxList[ i ].source = sound_source_create( file, index )) ) )
 				continue;
 
 			sound_set_pitch( SpotSfxList[ i ].source, SpotSfxList[ i ].freq );
