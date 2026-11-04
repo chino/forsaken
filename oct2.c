@@ -2574,6 +2574,11 @@ bool RenderScene( void )
 	DebugState("STATUS_LevelEnd\n");
 
     clear_black();
+    CenterPrint4x5Text( "waiting for all other players" , (render_info.window_size.cy>>1)-(FontHeight>>1) , 2 );
+    CurrentCamera = MainCamera; // screen polys are clipped to its viewport
+    if( !DisplaySolidScrPolys( &RenderBufs[ 3 ] ) )
+      return false;
+    ScreenPolyProcess();
     ReceiveGameMessages();
     Browl -= framelag;
 
