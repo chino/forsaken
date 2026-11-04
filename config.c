@@ -1386,6 +1386,10 @@ read_config( USERCONFIG *u, char *cfg_name )
 		// tell debuggers
 		DebugPrintf( "read_config: couldn't open '%s'\n", cfg_name );
 
+		// still give the joysticks their default bindings and mark them
+		// assigned, so they are all written to the new pilot file in order
+		DefaultJoystickSettings( u );
+
 		// failed ...
 		// still give connected joysticks their default bindings,
 		// they are otherwise only applied after parsing a pilot file

@@ -491,11 +491,13 @@ void app_joy_button( SDL_JoyButtonEvent * button )
 	joy_button_state[ joy ][ button->button ] =
 		(button->type == SDL_JOYBUTTONDOWN);
 
-	// pass down mouse events for menu processing
+	// pass down joystick events for menu processing
+	// the code must carry the joystick number as well as the button,
+	// otherwise binding a button in the controls menu always lands on js0
 	if(  button->type == SDL_JOYBUTTONDOWN )
 	{
 		input_buffer_send(
-			button->button + DIK_JOYSTICK
+			JOYSTICK_BUTTON_KEYCODE( button->which, button->button )
 		);
 	}
 }
