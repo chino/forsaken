@@ -57,6 +57,9 @@
 #include "file.h"
 #include "oct2.h"
 #include "tload.h"
+#ifdef VR_OPENXR
+#include "vr.h"
+#endif
 
 
 #define MAX_SAVEGAME_SLOTS		16
@@ -4805,6 +4808,12 @@ void ProcessHoloModel( void );
 
 u_int8_t QuickStart = QUICKSTART_None; 
 
+#ifdef VR_OPENXR
+// set while the title room is drawn into the headset: the screen polys are
+// drawn once afterwards, onto the panel, instead of into each eye
+static bool vr_title_world_only = false;
+#endif
+
 bool RenderCurrentMenu(void) // this renders broken main menu
 {
 	u_int16_t	group;
@@ -4890,6 +4899,12 @@ Display Non 0 Clipped Non Faceme Transluecent Polys
 	if( !DisplayGroupUnclippedPolys( &RenderBufs[ 2 ] ) ) // bjd
 			return false;
 
+#ifdef VR_OPENXR
+	if( vr_title_world_only )
+		set_normal_states();
+	else
+#endif
+	{
 /*===================================================================
 	Display Transluecent Screen Polys
 ===================================================================*/
@@ -4909,6 +4924,7 @@ Display Non 0 Clipped Non Faceme Transluecent Polys
 
 	if( !DisplaySolidScrPolys( &RenderBufs[ 3 ] ) )
 		return false;
+	}
 
 /*===================================================================
 Display Opaque Lines
@@ -5086,6 +5102,25 @@ bool DisplayTitle(void)
 									   RENDERVAL(2 * CurrentCamera.Viewport.dvScaleY));
 */
 
+#ifdef VR_OPENXR
+	// the title room in the headset; its screen polys go on the panel
+	if( vr_views_valid() )
+	{
+		bool ok;
+		vr_title_world_only = true;
+		ok = RenderCurrentCameraInVR(RenderCurrentMenu);
+		vr_title_world_only = false;
+		if( !ok )
+			return false;
+		set_alpha_states();
+		if( !DisplayNonSolidScrPolys( &RenderBufs[ 3 ] ) )
+			return false;
+		set_normal_states();
+		if( !DisplaySolidScrPolys( &RenderBufs[ 3 ] ) )
+			return false;
+	}
+	else
+#endif
 	if( render_info.stereo_enabled )
 	{
 		if(!RenderCurrentCameraInStereo(RenderCurrentMenu))
