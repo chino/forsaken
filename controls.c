@@ -671,6 +671,15 @@ void control_ship( USERCONFIG *conf, SHIPCONTROL *ctrl )
     mouse_dy = MAX_MOUSE_DELTA_Y;
 #endif
 
+  // the curve below squares the movement, so apply it to the movement per
+  // 1/71s tick (framelag 1.0) rather than per frame; otherwise the same hand
+  // motion turns the ship less the higher the frame rate
+  if ( framelag > 0.0F )
+  {
+    mouse_dx /= framelag;
+    mouse_dy /= framelag;
+  }
+
 // TODO
 // win32 appear to return greator values even in some resolution
 // we should also configure a fine control setting for the mouse to turn on/off the fabs() trick
@@ -681,6 +690,12 @@ void control_ship( USERCONFIG *conf, SHIPCONTROL *ctrl )
 	mouse_dx = mouse_dx * (float) fabs( mouse_dx ) * 0.01f; // tweaked for linux
 	mouse_dy = mouse_dy * (float) fabs( mouse_dy ) * -0.01f;
 #endif
+
+  if ( framelag > 0.0F )
+  {
+    mouse_dx *= framelag;
+    mouse_dy *= framelag;
+  }
 
 #if 0
   if ( mouse_dx < -framelag )
