@@ -2,7 +2,7 @@
 #include "util.h"
 #include "version.h"
 #include "main_sdl.h"
-#ifdef GL
+#if defined(GL) && !defined(GLES)
 #include "SDL_opengl.h"
 #endif
 
@@ -52,7 +52,11 @@ bool sdl_init( void )
 
 #define NUMBER_MODES 19
 render_display_mode_t video_modes[NUMBER_MODES] = {
+#ifdef PANDORA
+{800,480}, // the Pandora lcd
+#else
 {0,0}, // current video mode of the desktop
+#endif
 {640,480},
 {800,600}, // default window mode
 {1024,768},
@@ -138,7 +142,12 @@ static void set_opengl_settings( void )
 	SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER,	  1);
 
 #if SDL_VERSION_ATLEAST(2,0,0)
-#if GL == 3
+#if defined(GLES)
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 1);
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
+	SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 16);
+#elif GL == 3
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
 	// TODO - this isn't only mac osx specific is it ?

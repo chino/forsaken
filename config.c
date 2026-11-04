@@ -38,12 +38,22 @@ typedef struct {
 
 extern char *JoystickPOVDirections[];
 
+#ifdef PANDORA
+#define MOUSE_X_SENSITIVITY 0.3F
+#define MOUSE_Y_SENSITIVITY 0.2F
+#define JOYSTICK_SENSITIVITY 0.01F
+#else
+#define MOUSE_X_SENSITIVITY 0.6F
+#define MOUSE_Y_SENSITIVITY 0.6F
+#define JOYSTICK_SENSITIVITY 0.02F
+#endif
+
 USERCONFIG default_config = {
 	"Player",						// player name
 	0,								// bike (0=Lokasenna)
 	1,								// bike computer ( 1 = Brenda )
-	0.6F,							// mouse x sensitivity
-	0.6F,							// mouse y sensitivity
+	MOUSE_X_SENSITIVITY,			// mouse x sensitivity
+	MOUSE_Y_SENSITIVITY,			// mouse y sensitivity
 	0,								// pilot control (pitch forward = down, backward = up)
 	0,								// roll control...
 	0.05F,							// autolevel rate
@@ -1143,13 +1153,19 @@ void DefaultJoystickSettings( USERCONFIG *u )
 				for ( k = AXIS_Start; k <= AXIS_End; k++ )
 				{
 					JoystickInfo[ j ].Axis[ k ].action = SHIPACTION_Nothing;
-					JoystickInfo[ j ].Axis[ k ].sensitivity = 0.02F;
+					JoystickInfo[ j ].Axis[ k ].sensitivity = JOYSTICK_SENSITIVITY;
 					JoystickInfo[ j ].Axis[ k ].deadzone = 20;
 					JoystickInfo[ j ].Axis[ k ].inverted = false;
 					JoystickInfo[ j ].Axis[ k ].fine = true;
 				}
+#ifdef PANDORA
+				// left nub moves, right nub is the mouse
+				JoystickInfo[ j ].Axis[ AXIS_XAxis ].action = SHIPACTION_SlideLeft;
+				JoystickInfo[ j ].Axis[ AXIS_YAxis ].action = SHIPACTION_MoveForward;
+#else
 				JoystickInfo[ j ].Axis[ AXIS_XAxis ].action = SHIPACTION_RotateLeft;
 				JoystickInfo[ j ].Axis[ AXIS_YAxis ].action = SHIPACTION_RotateUp;
+#endif
 			}
 			AddButton( j, 0, &u->fire_primary );
 			AddButton( j, 1, &u->fire_secondary );
@@ -1194,11 +1210,18 @@ void ReInitJoysticks( void )
 			for ( k = AXIS_Start; k <= AXIS_End; k++ )
 			{
 				tempJoystickInfo[ j ].Axis[ k ].action = SHIPACTION_Nothing;
-				tempJoystickInfo[ j ].Axis[ k ].sensitivity = 0.02F;
+				tempJoystickInfo[ j ].Axis[ k ].sensitivity = JOYSTICK_SENSITIVITY;
 				tempJoystickInfo[ j ].Axis[ k ].deadzone = 20;
 				tempJoystickInfo[ j ].Axis[ k ].inverted = false;
 				tempJoystickInfo[ j ].Axis[ k ].fine = true;
 			}
+#ifdef PANDORA
+			// the left nub is always there and should always work
+			tempJoystickInfo[ j ].Axis[ AXIS_XAxis ].action = SHIPACTION_SlideLeft;
+			tempJoystickInfo[ j ].Axis[ AXIS_YAxis ].action = SHIPACTION_MoveForward;
+			if( j == 0 )
+				tempJoystickInfo[ j ].assigned = true;
+#endif
 			j++;
 		}
 	}

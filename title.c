@@ -9342,7 +9342,11 @@ void GetGamePrefs( void )
     BountyBonus                      = config_get_bool( "BountyBonus",				true );
     MyUseShortPackets                = config_get_bool( "UseShortPackets",			true );
     ShowTeamInfo                     = config_get_bool( "ShowTeamInfo",				true );
+#ifdef PANDORA
+	render_info.fullscreen			 = config_get_bool( "FullScreen",				true );
+#else
 	render_info.fullscreen			 = config_get_bool( "FullScreen",				false );
+#endif
 
 	memset( MyPickupValid, 0, sizeof(MyPickupValid) );
 
@@ -9377,7 +9381,11 @@ void GetGamePrefs( void )
 	CLAMP( WaterDetailSlider.value, WaterDetailSlider.max );
 	SetWaterDetail( &WaterDetailSlider );
 
+#ifdef PANDORA
+		TextScaleSlider.value = config_get_int("TextScale", 1.0F); // small high dpi screen
+#else
 		TextScaleSlider.value = config_get_int("TextScale", 0.0F);
+#endif
 		CLAMP(TextScaleSlider.value, TextScaleSlider.max);
 		SetTextScale( &TextScaleSlider );
 

@@ -448,15 +448,16 @@ bool Mload( char * Filename, MLOADHEADER * Mloadheader  )
 			/*	copy the vertex data into the execute buffer	*/
 			for ( i=0 ; i<num_vertices; i++)
 			{
-				LPOLDLVERTEX old = lpLVERTEX2;
+				OLDLVERTEX old;
+				READ_UNALIGNED( old, lpLVERTEX2 );
 
-				lpLVERTEX[i].x = old->x;
-				lpLVERTEX[i].y = old->y;
-				lpLVERTEX[i].z = old->z;
-				lpLVERTEX[i].tu = old->tu;
-				lpLVERTEX[i].tv = old->tv;
+				lpLVERTEX[i].x = old.x;
+				lpLVERTEX[i].y = old.y;
+				lpLVERTEX[i].z = old.z;
+				lpLVERTEX[i].tu = old.tu;
+				lpLVERTEX[i].tv = old.tv;
 
-				color = old->color;
+				color = old.color;
 				a = (color>>24)&255;
 				r = (color>>16)&255;
 				g = (color>>8)&255;
@@ -483,7 +484,8 @@ bool Mload( char * Filename, MLOADHEADER * Mloadheader  )
 				// right here you could override texture coloring if you wanted
 				color = RGBA_MAKE( r , g , b , a  );
 				lpLVERTEX[i].color = color;
-				lpLVERTEX2->color = color;
+				old.color = color;
+				WRITE_UNALIGNED( lpLVERTEX2, old );
 
 // bjd - CHECK				lpLVERTEX2->dwReserved |= 0xff000000;
 
@@ -569,9 +571,12 @@ bool Mload( char * Filename, MLOADHEADER * Mloadheader  )
 				/*	copy the faces data into the execute buffer	*/
 				for( e=0; e<num_triangles; e++)
 				{
-					FacePnt.v1 = MFacePnt->v1;
-					FacePnt.v2 = MFacePnt->v2;
-					FacePnt.v3 = MFacePnt->v3;
+					MFACE face;
+					READ_UNALIGNED( face, MFacePnt );
+
+					FacePnt.v1 = face.v1;
+					FacePnt.v2 = face.v2;
+					FacePnt.v3 = face.v3;
 
 					lpIndices[ibIndex] = FacePnt.v1;
 					ibIndex++;
@@ -580,20 +585,21 @@ bool Mload( char * Filename, MLOADHEADER * Mloadheader  )
 					lpIndices[ibIndex] = FacePnt.v3;
 					ibIndex++;
 /*
-					FacePnt->v1 = MFacePnt->v1;
-					FacePnt->v2 = MFacePnt->v2;
-					FacePnt->v3 = MFacePnt->v3;
+					FacePnt->v1 = face.v1;
+					FacePnt->v2 = face.v2;
+					FacePnt->v3 = face.v3;
 */
 
-					lpNormals->nx = MFacePnt->nx;
-					lpNormals->ny = MFacePnt->ny;
-					lpNormals->nz = MFacePnt->nz;
+					lpNormals->nx = face.nx;
+					lpNormals->ny = face.ny;
+					lpNormals->nz = face.nz;
 
-					if ( MFacePnt->pad & 1 )
+					if ( face.pad & 1 )
 					{
 						// colourkey triangle found
 						colourkey++;
-						MFacePnt->pad &= ~1;
+						face.pad &= ~1;
+						WRITE_UNALIGNED( MFacePnt, face );
 					}
 					//if ( AllWires )
 						//FacePnt->wFlags = D3DTRIFLAG_EDGEENABLETRIANGLE;
@@ -683,9 +689,9 @@ bool Mload( char * Filename, MLOADHEADER * Mloadheader  )
 
 			VertPnt = ( VERT* )	Buffer;
 			/*	get the center position of the group	*/
-			Mloadheader->Group[group].center = *VertPnt++;
+			READ_UNALIGNED( Mloadheader->Group[group].center, VertPnt++ );
 			/*	get the size of the group	*/
-			Mloadheader->Group[group].half_size = *VertPnt++;
+			READ_UNALIGNED( Mloadheader->Group[group].half_size, VertPnt++ );
 			Buffer = ( char * ) VertPnt;
 
 			Uint16Pnt = (u_int16_t *) Buffer;
@@ -721,7 +727,8 @@ bool Mload( char * Filename, MLOADHEADER * Mloadheader  )
 					VertPnt = ( VERT* )	Buffer;
 					for( verts = 0 ; verts < length ; verts++ )
 					{
-						VERT vert = *VertPnt++;
+						VERT vert;
+						READ_UNALIGNED( vert, VertPnt++ );
 						sum.x += vert.x;
 						sum.y += vert.y;
 						sum.z += vert.z;
@@ -754,7 +761,7 @@ bool Mload( char * Filename, MLOADHEADER * Mloadheader  )
 				for ( pnum = 0; pnum < Mloadheader->Group[group].Portal[portal].num_polys_in_portal; pnum++ )
 				{
 #if 1
-					Mloadheader->Group[group].Portal[portal].Poly[pnum] = * (MCFACE *) Uint16Pnt;
+					READ_UNALIGNED( Mloadheader->Group[group].Portal[portal].Poly[pnum], Uint16Pnt );
 					Uint16Pnt = (u_int16_t *) ( ( (MCFACE *) Uint16Pnt) + 1 );
 #else
 					Mloadheader->Group[group].Portal[portal].Poly[pnum].num_vertices_in_poly = *Uint16Pnt++;
@@ -839,7 +846,7 @@ bool Mload( char * Filename, MLOADHEADER * Mloadheader  )
 			Buffer = (char *) Uint16Pnt;		
 
 			FloatPnt = ( float * ) Buffer;
-			Mloadheader->CellSize = 1.0F / *FloatPnt++;
+			Mloadheader->CellSize = 1.0F / read_float( &FloatPnt );
 			Buffer = (char * ) FloatPnt;
 	
 			for( group=0 ; group<Mloadheader->num_groups; group++)
@@ -850,9 +857,9 @@ bool Mload( char * Filename, MLOADHEADER * Mloadheader  )
 				for( execbuf=0 ; execbuf<Mloadheader->Group[group].num_execbufs; execbuf++)
 				{
 					FloatPnt = (float * ) Buffer;
-					Mloadheader->Group[group].cell_origin[execbuf].x = *FloatPnt++;
-					Mloadheader->Group[group].cell_origin[execbuf].y = *FloatPnt++;
-					Mloadheader->Group[group].cell_origin[execbuf].z = *FloatPnt++;
+					Mloadheader->Group[group].cell_origin[execbuf].x = read_float( &FloatPnt );
+					Mloadheader->Group[group].cell_origin[execbuf].y = read_float( &FloatPnt );
+					Mloadheader->Group[group].cell_origin[execbuf].z = read_float( &FloatPnt );
 					Buffer = (char * ) FloatPnt;
 					Uint16Pnt = (u_int16_t *) Buffer;
 					Mloadheader->Group[group].xcells[execbuf] = *Uint16Pnt++;
@@ -921,16 +928,18 @@ bool Mload( char * Filename, MLOADHEADER * Mloadheader  )
 		StartPosPnt = (STARTPOS * ) Buffer;
 		for( i = 0 ; i < num_start_positions ; i++ )
 		{
-			StartPositions[i].Pos.x = StartPosPnt->Pos.x;
-			StartPositions[i].Pos.y = StartPosPnt->Pos.y;
-			StartPositions[i].Pos.z = StartPosPnt->Pos.z;
-			StartPositions[i].Dir.x = StartPosPnt->Dir.x;
-			StartPositions[i].Dir.y = StartPosPnt->Dir.y;
-			StartPositions[i].Dir.z = StartPosPnt->Dir.z;
-			StartPositions[i].Up.x = StartPosPnt->Up.x;
-			StartPositions[i].Up.y = StartPosPnt->Up.y;
-			StartPositions[i].Up.z = StartPosPnt->Up.z;
-			StartPositions[i].Group = StartPosPnt->Group;
+			STARTPOS start;
+			READ_UNALIGNED( start, StartPosPnt );
+			StartPositions[i].Pos.x = start.Pos.x;
+			StartPositions[i].Pos.y = start.Pos.y;
+			StartPositions[i].Pos.z = start.Pos.z;
+			StartPositions[i].Dir.x = start.Dir.x;
+			StartPositions[i].Dir.y = start.Dir.y;
+			StartPositions[i].Dir.z = start.Dir.z;
+			StartPositions[i].Up.x = start.Up.x;
+			StartPositions[i].Up.y = start.Up.y;
+			StartPositions[i].Up.z = start.Up.z;
+			StartPositions[i].Group = start.Group;
 			//Make a note in each group of which Start point is in there...
 			Mloadheader->Group[StartPositions[i].Group].StartPosInThisGroup = i;
 			if( FirstStartPositionInGroup[StartPositions[i].Group] == (u_int16_t) -1 )
@@ -956,9 +965,9 @@ bool Mload( char * Filename, MLOADHEADER * Mloadheader  )
 			up = (float *) Buffer;
 			for ( i = 0; i < Mloadheader->num_groups; i++ )
 			{
-				Mloadheader->Group[ i ].up.x = *up++;
-				Mloadheader->Group[ i ].up.y = *up++;
-				Mloadheader->Group[ i ].up.z = *up++;
+				Mloadheader->Group[ i ].up.x = read_float( &up );
+				Mloadheader->Group[ i ].up.y = read_float( &up );
+				Mloadheader->Group[ i ].up.z = read_float( &up );
 			}
 			Buffer = (char *) up;
 		}
@@ -1086,8 +1095,8 @@ bool Mload( char * Filename, MLOADHEADER * Mloadheader  )
 						FloatPnt = (float*) Buffer;
 						for( o = 0 ; o < vertices*frames ; o++ )
 						{
-							TanimUV->u = *FloatPnt++;
-							TanimUV->v = *FloatPnt++;
+							TanimUV->u = read_float( &FloatPnt );
+							TanimUV->v = read_float( &FloatPnt );
 							TanimUV++;
 						}
 						Buffer = ( char * ) FloatPnt;
@@ -1819,7 +1828,7 @@ void ReadSoundInfo( MLOADHEADER *m, char **pbuf )
 	{
 		for ( k = 0; k < m->num_groups; k++ )
 		{
-			SoundInfo[ j ][ k ] = *buf++;
+			SoundInfo[ j ][ k ] = read_float( &buf );
 		}
 	}
 

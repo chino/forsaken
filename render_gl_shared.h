@@ -18,9 +18,24 @@
 #ifndef GL_GLEXT_PROTOTYPES
 #define GL_GLEXT_PROTOTYPES 1
 #endif
+#ifdef GLES
+// OpenGL ES 1.1 (make GLES=1), only the GL == 1 renderer supports it
+#include <GLES/gl.h>
+#include <GLES/glext.h>
+#else
 #include "SDL_opengl.h"
 #if SDL_VERSION_ATLEAST(2,0,0) && !defined(MACOSX)
 #include <GL/glu.h> // sdl2's SDL_opengl.h no longer includes it
+#endif
+#endif
+
+#ifdef GLES
+#if GL != 1
+#error "GLES is only supported by the GL=1 renderer"
+#endif
+// the ES 1.1 names of the double precision calls we use
+#define glClearDepth glClearDepthf
+#define glDepthRange glDepthRangef
 #endif
 
 extern render_info_t render_info;
@@ -28,7 +43,8 @@ extern render_info_t render_info;
 extern GLenum render_last_gl_error;
 
 // TODO invalid pointer
-#if defined(MACOSX) && SDL_VERSION_ATLEAST(2,0,0)
+// GLES has no GLU at all
+#if ( defined(MACOSX) && SDL_VERSION_ATLEAST(2,0,0) ) || defined(GLES)
 #define gluErrorString(e)\
 	(e == 0x0500 ? "invalid enumerant" : \
 	(e == 0x0501 ? "invalid value" : \

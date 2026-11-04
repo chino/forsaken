@@ -2,15 +2,33 @@
 # General Compiler Settings
 #
 
-# for cross compiling be sure to specify your compiler ex:
-# make CC=i686-mingw32-gcc
-CC=gcc
+# for cross compiling give the toolchain prefix (see README.md) ex:
+# make CROSS=aarch64-linux-gnu-
+# or the compiler ex: make CC=i686-mingw32-gcc
+CROSS=
+CC=$(CROSS)gcc
+
+# $(CROSS)pkg-config when it exists
+PKG_CONFIG?=$(if $(CROSS),$(shell command -v $(CROSS)pkg-config >/dev/null 2>&1 && \
+              echo $(CROSS)pkg-config || echo pkg-config),pkg-config)
+
+# board presets
+# OpenPandora: Cortex-A8, SDL 2 (pandora video driver), OpenGL ES 1.1
+ifeq ($(PANDORA),1)
+  SDL?=2
+  GLES?=1
+  PROFILE?=0
+  FLAGS+= -mcpu=cortex-a8 -mfpu=neon -mfloat-abi=softfp
+  GLES_LIBS?= -lGLES_CM
+  PLATFORM_CFLAGS+= -DPANDORA
+endif
 
 # general compiler settings
 ifeq ($(M32),1)
   FLAGS+= -m32
 endif
-FLAGS+= -std=gnu99 -pipe -fcommon
+# the code assumes char is signed like on x86, it isn't on ARM or PowerPC
+FLAGS+= -std=gnu99 -pipe -fcommon -fsigned-char
 CFLAGS=$(FLAGS) -Wall -Wextra
 LDFLAGS=$(FLAGS)
 
@@ -19,7 +37,7 @@ LDFLAGS=$(FLAGS)
 DEBUG=1
 
 # might as well leave gprof support on by default as well
-PROFILE=1
+PROFILE?=1
 
 # use this if you want to build everything statically
 STATIC=0
@@ -69,14 +87,14 @@ MACOSX=$(shell uname -a | grep -qi darwin && echo 1 || echo 0)
 LUA=0
 ifeq ($(LUA),1)
   # some systems use lua5.1
-  LUA_PKG=$(shell pkg-config lua && echo lua || echo lua5.1)
+  LUA_PKG=$(shell $(PKG_CONFIG) lua && echo lua || echo lua5.1)
   # debian/ubuntu split luasocket's mime module into its own package
-  LUA_MIME=$(shell pkg-config --exists $(LUA_PKG)-mime && echo $(LUA_PKG)-mime)
+  LUA_MIME=$(shell $(PKG_CONFIG) --exists $(LUA_PKG)-mime && echo $(LUA_PKG)-mime)
   LUA_LIBS=$(LUA_PKG) $(LUA_PKG)-socket $(LUA_MIME)
 endif
 
 # which version of sdl do you want to ask pkgconfig for ?
-SDL=1
+SDL?=1
 ifeq ($(SDL),1)
   SDL_=sdl
 else
@@ -84,13 +102,29 @@ else
 endif
 
 # which version of GL do you want to use ?
-GL=1
+GL?=1
 
 $(if $(shell test "$(GL)" -ge 3 -a "$(SDL)" -lt 2 && echo fail), \
      $(error "GL >= 3 only supported with SDL >= 2"))
 
+# use OpenGL ES 1.1 instead of desktop OpenGL (ARM boards, phones...)
+# SDL 2 creates the context, SDL 1.2 can not.
+GLES?=0
+ifeq ($(GLES),1)
+  ifneq ($(GL),1)
+    $(error "GLES=1 is only supported with GL=1")
+  endif
+  ifneq ($(SDL),2)
+    $(error "GLES=1 is only supported with SDL=2")
+  endif
+  GLES_CFLAGS?=$(shell $(PKG_CONFIG) --cflags glesv1_cm 2>/dev/null)
+  GLES_LIBS?=$(shell $(PKG_CONFIG) --libs glesv1_cm 2>/dev/null || echo -lGLESv1_CM)
+  CFLAGS+= -DGLES $(GLES_CFLAGS)
+endif
+
 # library headers
-CFLAGS+= `pkg-config --cflags $(SDL_) $(LUA_LIBS) libenet libpng zlib openal`
+CFLAGS+= `$(PKG_CONFIG) --cflags $(SDL_) $(LUA_LIBS) libenet libpng zlib openal`
+CFLAGS+= $(PLATFORM_CFLAGS)
 ifeq ($(MACOSX),1)
   CFLAGS += -DMACOSX
 endif
@@ -103,13 +137,13 @@ ifeq ($(STATIC),1)
   LIB+= -Wl,-dn
   PKG_CFG_OPTS= --static
 endif
-LIB+= `pkg-config $(PKG_CFG_OPTS) --libs $(LUA_LIBS) libenet libpng zlib openal` -lm
+LIB+= `$(PKG_CONFIG) $(PKG_CFG_OPTS) --libs $(LUA_LIBS) libenet libpng zlib openal` -lm
 ifeq ($(STATIC),1)
   LIB+= -Wl,-dy
 endif
 
 # dynamic only libraries
-LIB+= `pkg-config --libs $(SDL_)`
+LIB+= `$(PKG_CONFIG) --libs $(SDL_)`
 ifeq ($(MINGW),1)
   CFLAGS += -DMINGW
   LIB += -L./mingw/bin
@@ -120,6 +154,8 @@ else ifeq ($(MACOSX),1)
   #LIB += -L/usr/X11/lib/ -lGL -lGLU
   LIB += -framework OpenGL # OpenGL bundle on OSX.
   LIB += -framework Cocoa  # Used to target Quartz by SDL_.
+else ifeq ($(GLES),1)
+  LIB += $(GLES_LIBS)
 else
   LIB += -lGL -lGLU
 endif
@@ -170,16 +206,16 @@ endif
 # ADD_CFLAGS=-DFLAC__NO_DLL).
 MUSIC=1
 ifeq ($(MUSIC),1)
-  MUSIC_OGG:=$(shell pkg-config --exists vorbisfile 2>/dev/null && echo 1 || echo 0)
-  MUSIC_FLAC:=$(shell pkg-config --exists flac 2>/dev/null && echo 1 || echo 0)
+  MUSIC_OGG:=$(shell $(PKG_CONFIG) --exists vorbisfile 2>/dev/null && echo 1 || echo 0)
+  MUSIC_FLAC:=$(shell $(PKG_CONFIG) --exists flac 2>/dev/null && echo 1 || echo 0)
   CFLAGS+= -DMUSIC
   ifeq ($(MUSIC_OGG),1)
-    CFLAGS+= -DMUSIC_OGG $(shell pkg-config --cflags vorbisfile 2>/dev/null)
-    LIB+= $(shell pkg-config $(PKG_CFG_OPTS) --libs vorbisfile 2>/dev/null || echo -lvorbisfile -lvorbis -logg)
+    CFLAGS+= -DMUSIC_OGG $(shell $(PKG_CONFIG) --cflags vorbisfile 2>/dev/null)
+    LIB+= $(shell $(PKG_CONFIG) $(PKG_CFG_OPTS) --libs vorbisfile 2>/dev/null || echo -lvorbisfile -lvorbis -logg)
   endif
   ifeq ($(MUSIC_FLAC),1)
-    CFLAGS+= -DMUSIC_FLAC $(shell pkg-config --cflags flac 2>/dev/null)
-    LIB+= $(shell pkg-config $(PKG_CFG_OPTS) --libs flac 2>/dev/null || echo -lFLAC)
+    CFLAGS+= -DMUSIC_FLAC $(shell $(PKG_CONFIG) --cflags flac 2>/dev/null)
+    LIB+= $(shell $(PKG_CONFIG) $(PKG_CFG_OPTS) --libs flac 2>/dev/null || echo -lFLAC)
   endif
 else
   MUSIC_OGG=0
@@ -231,6 +267,9 @@ check:
 	@echo "CROSS = $(CROSS)"
 	@echo "BOT = $(BOT)"
 	@echo "GL = $(GL)"
+	@echo "GLES = $(GLES)"
+	@echo "PANDORA = $(PANDORA)"
+	@echo "PKG_CONFIG = $(PKG_CONFIG)"
 	@echo "RENDER_DISABLED = $(RENDER_DISABLED)"
 	@echo "INPUT_DISABLED = $(INPUT_DISABLED)"
 	@echo "MUSIC = $(MUSIC) (ogg $(MUSIC_OGG), flac $(MUSIC_FLAC))"
