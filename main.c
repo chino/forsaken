@@ -638,11 +638,22 @@ extern void network_cleanup( void );
 extern bool SeriousError;
 extern void CleanUpAndPostQuit(void);
 
+// any exit other than the normal one at the end of main() is an error
+static bool clean_exit = false;
+static void exit_handler( void )
+{
+	if( !clean_exit )
+		ShowFatalError();
+}
+
 int main( int argc, char* argv[] )
 {
 	int i;
 	char cli[500];
     int failcount = 0; // number of times RenderLoop has failed
+	bool failed = false;
+
+	atexit( exit_handler );
 
 	// build cli string
 	// TODO - cli parsing should be updated
@@ -678,12 +689,14 @@ int main( int argc, char* argv[] )
 			if( SeriousError )
 			{
 				CleanUpAndPostQuit();
+				failed = true;
 				break;
 			}
 
 			if (failcount == 3) {
 				DebugPrintf("Rendering has failed too many times.  Aborting execution.\n");
 				CleanUpAndPostQuit();
+				failed = true;
 				break;
 			}
 
@@ -698,8 +711,15 @@ int main( int argc, char* argv[] )
 #endif
 	}
 
+	if( failed )
+	{
+		DebugPrintf("exit(1)\n");
+		return 1;
+	}
+
 	DebugPrintf("exit(0)\n");
 
+	clean_exit = true;
 	return 0;
 
 FAILURE:

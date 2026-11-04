@@ -14,7 +14,11 @@ bool DebugLog = false;
 #ifdef WIN32
 #include <windows.h>	// for various things
 #include <ctype.h>		// for toupper
+#else
+#include <unistd.h>
+#include <sys/wait.h>
 #endif
+#include <SDL.h>
 
 
 char * convert_char( char from, char to, char* in )
@@ -242,6 +246,8 @@ void DebugState( const char * str )
 //extern render_info_t render_info;
 extern void MenuGoFullScreen( MENUITEM *Item );
 extern void input_grab( bool clip );
+static char last_msg[ 1024 ];
+
 int Msg( const char * msg, ... )
 {
 //	bool was_fullscreen = render_info.fullscreen;
@@ -255,6 +261,9 @@ int Msg( const char * msg, ... )
 	va_end( args );
 
 	txt[sizeof(txt)-1] = 0;
+
+	// remembered for ShowFatalError()
+	strncpy( last_msg, txt, sizeof(last_msg)-1 );
 
 #if 0 //def WIN32
 
@@ -293,3 +302,54 @@ int Msg( const char * msg, ... )
 	return res;
 }
 
+//
+// Tells the user why the game is quitting on an error instead of
+// silently dropping back to the desktop.
+//
+
+#if !SDL_VERSION_ATLEAST(2,0,0) && !defined(WIN32)
+// sdl1 has no message box, try the usual desktop helpers
+static bool run_dialog( const char * prog, const char * a1, const char * a2, const char * a3 )
+{
+	int status;
+	pid_t pid = fork();
+	if( pid < 0 )
+		return false;
+	if( pid == 0 )
+	{
+		execlp( prog, prog, a1, a2, a3, (char*) NULL );
+		_exit( 127 );
+	}
+	if( waitpid( pid, &status, 0 ) < 0 )
+		return false;
+	return WIFEXITED( status ) && WEXITSTATUS( status ) != 127;
+}
+#endif
+
+void ShowFatalError( void )
+{
+	char txt[ 1280 ];
+
+	snprintf( txt, sizeof(txt),
+		"ProjectX had to quit because of an error:\n\n%s\n\n"
+		"Run with -log to write details to the logs folder.",
+		last_msg[0] ? last_msg : "unknown error" );
+	txt[sizeof(txt)-1] = 0;
+
+	fprintf( stderr, "%s\n", txt );
+	DebugPrintf( "ShowFatalError: %s\n", last_msg );
+
+#if SDL_VERSION_ATLEAST(2,0,0)
+	SDL_ShowSimpleMessageBox( SDL_MESSAGEBOX_ERROR, "ProjectX", txt, NULL );
+#elif defined(WIN32)
+	MessageBoxA( NULL, txt, "ProjectX", MB_OK | MB_ICONERROR );
+#else
+	if( getenv( "DISPLAY" ) )
+	{
+		char arg[ sizeof(txt) + 8 ];
+		snprintf( arg, sizeof(arg), "--text=%s", txt );
+		if( !run_dialog( "zenity", "--error", "--no-markup", arg ) )
+			run_dialog( "xmessage", "-center", txt, NULL );
+	}
+#endif
+}
