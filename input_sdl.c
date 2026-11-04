@@ -592,19 +592,13 @@ void app_joy_hat( SDL_JoyHatEvent * hat )
 
 #ifndef DINPUTJOY
 
-// sdl 1.2's SDL_JoystickName() took a device index, sdl2 renamed that to
-// SDL_JoystickNameForIndex() and SDL_JoystickName() now takes an open joystick.
-// passing the index there handed sdl2 a bogus pointer (and strdup a NULL).
-static const char * joystick_name( int index )
-{
-	const char * name;
+// sdl2 takes a device index in SDL_JoystickNameForIndex(), sdl 1.2 in
+// SDL_JoystickName(); sdl2's SDL_JoystickName() wants an opened joystick
 #if SDL_VERSION_ATLEAST(2,0,0)
-	name = SDL_JoystickNameForIndex( index );
+#define joystick_name_for_index( I ) SDL_JoystickNameForIndex( I )
 #else
-	name = SDL_JoystickName( index );
+#define joystick_name_for_index( I ) SDL_JoystickName( I )
 #endif
-	return name ? name : "Unknown Joystick";
-}
 
 bool joysticks_init(void)
 {
@@ -625,13 +619,14 @@ bool joysticks_init(void)
 	for (i = 0; i < Num_Joysticks; i++)
 	{
 		SDL_Joystick * joy = SDL_JoystickOpen(i);
+		const char * name;
 
 		// failed to open joystick
 		if(!joy)
 		{
 			DebugPrintf(
 				"joysticks_init: joystick (%d), '%s' failed to open\n",
-				i, joystick_name(i)
+				i, joystick_name_for_index(i)
 			);
 			continue;
 		}
@@ -657,7 +652,8 @@ bool joysticks_init(void)
 		// TODO
 		// JoystickInfo[i].NumBalls = SDL_JoystickNumBalls(joy);
 
-		JoystickInfo[i].Name = strdup( (char*) joystick_name(i) );
+		name = joystick_name_for_index(i);
+		JoystickInfo[i].Name = strdup( (char*) ( name ? name : "Unknown joystick" ) );
 
 		DebugPrintf( 
 			"joysticks_init: joystick (%d), name='%s', axises=%d, buttons=%d, hats=%d\n", 
