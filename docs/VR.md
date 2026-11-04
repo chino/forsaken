@@ -53,23 +53,39 @@ Options:
 | `-vrscale:N`   | 30      | World units per metre. Bigger makes the world feel smaller. |
 | `-vrres:N`     | 100     | Eye resolution as a percentage of what the runtime recommends (10 to 400). |
 
+VR settings, also in **VR Options** in the pause menu and in the title's
+Options > Visuals (both only shown in the headset), which also has **Recenter**:
+
+| Setting            | Default | |
+|--------------------|---------|-|
+| `VRTurnSpeed = N`  | 100     | How fast the controllers turn and pitch the ship, as a percentage of the game's rate. |
+| `VRAutoLevel = true` | false | Ease the ship back level when you are not rolling, even if the pilot's own autoleveling is off. |
+| `VRShipBob = false`  | true  | Stop the gentle drift of your ship at rest, which moves the whole view in a headset. |
+| `VRHudCockpit = false` | true | Keep the HUD in front of your eyes wherever you look instead of fixed in the cockpit. |
+| `VRSteadyMirror = false` | true | Mirror the left eye as it is instead of a steady, level cut-out of it that follows your turns but not every small head movement. |
+| `VRVibration = false`  | true | Stop the controllers buzzing when you fire (primary in the right hand, secondary in the left) and when you are hit (both, harder for a bigger hit). |
+
 ## What you get
 
 - The 3D world in stereo with the runtime's per-eye field of view. Your head
   turns and moves inside the cockpit, on top of the ship's own six degrees of
   freedom.
 - The HUD and in-game menus on a panel about 2 m wide, 1.75 m in front of you,
-  that follows your head. Black is see-through, so the HUD floats over the world.
+  fixed in the cockpit: look around and it stays put, like the cockpit does
+  (`VRHudCockpit = false` makes it follow your head). Black is see-through, so
+  the HUD floats over the world.
 - Title screens and loading screens on the same panel, fixed in the room where
   it appeared, with the 3D title room behind it in stereo.
-- The desktop window mirrors the left eye with the HUD laid over it.
+- The desktop window mirrors the left eye with the HUD laid over it, as a
+  steady, level cut-out that follows your turns but not every small movement
+  of your head, which is easier to watch.
 - **Recentre** by holding the menu button for about half a second.
 
 ## Controllers
 
 The controllers show up as a joystick called **OpenXR Controllers**, so they
 can be changed in the game's joystick menus like any other joystick and are
-saved with your pilot. Bindings are suggested for Oculus Touch, Valve Index,
+saved with your pilot. **Controls** in VR Options goes straight to those menus. Bindings are suggested for Oculus Touch, Valve Index,
 Windows Mixed Reality, HTC Vive and the generic Khronos simple controller.
 
 Default layout (Touch names):
@@ -87,6 +103,7 @@ Default layout (Touch names):
 | Left / right stick click | Next primary / secondary weapon |
 | Menu (short press) | Escape (in-game menu) |
 | Menu (hold)        | Recentre |
+| Left stick click in the pause menu | Hide the menu and HUD to look at the paused level; click again to bring them back |
 
 In menus either stick moves, A or the right trigger chooses and B goes back.
 Keyboard, mouse and gamepads keep working as usual.
@@ -109,4 +126,3 @@ simulated headset's left eye. The simulated device has no controllers.
 - Changing the video mode while in VR is not supported; restart instead.
 - The rear view and missile camera pictures are drawn on the HUD panel, so
   they are see-through like the rest of the HUD.
-- No haptics, controller aiming or comfort options yet; see Forsaken VR for those.

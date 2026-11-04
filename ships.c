@@ -19,6 +19,9 @@
 #include "secondary.h"
 #include "mxaload.h"
 #include "lights.h"
+#ifdef VR_OPENXR
+#include "vr.h"
+#endif
 #include "sphere.h"
 #include "title.h"
 #include "trigarea.h"
@@ -696,6 +699,66 @@ static	LONGLONG	TempTime2;
 static	float	Interp;	
 extern  BYTE          MyGameStatus;
 
+#ifdef VR_OPENXR
+/*===================================================================
+	Vibrate the controllers from what this frame did: primary ammo going
+	down means we fired the gun (right hand), secondary ammo a missile or
+	mine (left hand), shield and hull going down that we were hit (both,
+	harder for a bigger hit). Based on Forsaken VR's vr_haptics.c.
+===================================================================*/
+extern	float	PyroliteAmmo;
+extern	float	SussGunAmmo;
+extern	int16_t	SecondaryAmmo[ MAXSECONDARYWEAPONS ];
+
+static void VRHaptics( void )
+{
+	static bool have = false;
+	static float prev_prim, prev_hp, gun_wait;
+	static int prev_sec;
+	float prim, hp, dmg;
+	int sec, ms, i;
+
+	if( !vr_active() || !vr_vibration || CurrentMenu || Ships[ WhoIAm ].Object.Mode != NORMAL_MODE ||
+		( MyGameStatus != STATUS_SinglePlayer && MyGameStatus != STATUS_Normal ) )
+	{
+		have = false;
+		return;
+	}
+
+	prim = GeneralAmmo + PyroliteAmmo + SussGunAmmo;
+	for( sec = 0, i = 0; i < MAXSECONDARYWEAPONS; i++ )
+		sec += SecondaryAmmo[ i ];
+	hp = Ships[ WhoIAm ].Object.Shield + Ships[ WhoIAm ].Object.Hull;
+	gun_wait -= framelag;
+
+	if( have )
+	{
+		// rapid fire spends ammo every frame: a short tick every 70ms
+		if( prim < prev_prim && gun_wait <= 0.0F )
+		{
+			vr_haptic( VR_HAND_RIGHT, 0.35F, 30 );
+			gun_wait = 5.0F;
+		}
+		if( sec < prev_sec )
+			vr_haptic( VR_HAND_LEFT, 0.8F, 90 );
+		if( hp < prev_hp )
+		{
+			dmg = prev_hp - hp;
+			ms = 60 + (int)( dmg * 3.0F );
+			if( ms > 250 )
+				ms = 250;
+			vr_haptic( VR_HAND_LEFT, 0.35F + dmg / 40.0F, ms );
+			vr_haptic( VR_HAND_RIGHT, 0.35F + dmg / 40.0F, ms );
+		}
+	}
+
+	prev_prim = prim;
+	prev_sec = sec;
+	prev_hp = hp;
+	have = true;
+}
+#endif
+
 bool ProcessShips()
 {
 	BYTE	i;
@@ -941,6 +1004,12 @@ bool ProcessShips()
 					AccellDecell( &ShipObjPnt->Angle.y , TurnDecell );
 			 		AccellDecell( &ShipObjPnt->Angle.x , TurnDecell );
 			 		AccellDecell( &ShipObjPnt->Angle.z , RollDecell );
+#ifdef VR_OPENXR
+					// VR can level the ship even when the pilot's own setting is off
+					if( vr_active() && vr_auto_level && !player_config->autolevel_rate )
+						ShipObjPnt->Autolevel = AutoLevelRot( i, AutoLevel * 0.05F * framelag );
+					else
+#endif
 					ShipObjPnt->Autolevel = AutoLevelRot( i, AutoLevel * player_config->autolevel_rate * framelag );
 			 		AccellDecell( &ShipObjPnt->Bank , BankDecell );
 					AccellDecell( &ShipObjPnt->Speed.x , MoveDecell );
@@ -1525,6 +1594,10 @@ bool ProcessShips()
 	}
 
 	SetPosVelDir_Listner( &Ships[WhoIAm].Object.Pos , &Ships[WhoIAm].Move_Off , &Ships[WhoIAm].Object.Mat );
+
+#ifdef VR_OPENXR
+	VRHaptics();
+#endif
 	
 	return true;
 }
@@ -1679,6 +1752,11 @@ void BobShip( u_int16_t ship, VECTOR *bob )
 
 	move = Ships[ ship ].Object.Speed;
 	move_len = (float) sqrt( move.x * move.x + move.y * move.y + move.z * move.z );
+#ifdef VR_OPENXR
+	// the drift moves the whole view in a headset
+	if ( vr_active() && !vr_ship_bob && ship == WhoIAm )
+		move_len = MOVE_TOLERANCE;
+#endif
 	if ( move_len < MOVE_TOLERANCE && !DebugInfo )
 	{
 		move.x = BOB_XSIZE * (float) sin( Ships[ ship ].Object.BobCount * BOB_XFREQ );

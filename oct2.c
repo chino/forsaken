@@ -4420,8 +4420,11 @@ bool MainGameRender(void)
       {
 				if(!RenderCurrentCameraInVR(RenderCurrentCamera))
 					return false;
-				DrawMainGameMenu();
-				RenderMainCamera2dPolys();
+				if( !vr_photo_mode )
+				{
+					DrawMainGameMenu();
+					RenderMainCamera2dPolys();
+				}
       }
       else
 #endif

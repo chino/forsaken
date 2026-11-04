@@ -31,6 +31,17 @@ extern float vr_world_scale;
 // percentage of the runtime's recommended eye resolution. -vrres:N
 extern int vr_res_scale;
 
+// comfort: the controllers' turn and pitch rate as a percentage of the
+// game's (VRTurnSpeed), ease the ship back level when not rolling even if
+// the pilot's autoleveling is off (VRAutoLevel) and the idle drift of our
+// own ship (VRShipBob)
+extern int vr_turn_speed;
+extern bool vr_auto_level;
+extern bool vr_ship_bob;
+
+// the HUD stays put in the cockpit instead of following the head (VRHudCockpit)
+extern bool vr_hud_cockpit;
+
 // bring up OpenXR. call once the GL context is current.
 // returns false (having logged why) when the game should stay on the desktop.
 bool vr_init( void );
@@ -103,6 +114,20 @@ bool vr_read_controllers( vr_controllers_t * out );
 
 // recentre the view on where the player is looking now
 void vr_recenter( void );
+
+// vibrate a controller: amplitude 0 to 1 for ms milliseconds
+enum { VR_HAND_LEFT, VR_HAND_RIGHT };
+void vr_haptic( int hand, float amplitude, int ms );
+
+// buzz when firing and when hit (VRVibration)
+extern bool vr_vibration;
+
+// the desktop window shows a steady, level cut-out of the left eye instead
+// of following every movement of the head (VRSteadyMirror)
+extern bool vr_steady_mirror;
+
+// the pause menu and HUD are hidden to look at the paused scene
+extern bool vr_photo_mode;
 
 #endif // VR_OPENXR
 
