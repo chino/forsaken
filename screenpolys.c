@@ -1620,10 +1620,10 @@ void AddScreenPolyText( u_int16_t Frame, float XPos, float YPos, u_int8_t Red, u
 		ScrPolys[ i ].FrameRate = 0.0F;
 		ScrPolys[ i ].SeqNum = SCRSEQ_Nothing;
 
-		if(Frame >= 63 && Frame <= 72) // don't scale the cross hair or trojax power
+		if(Frame >= 63 && Frame <= 72) // cross hair and trojax power have their own scale
 		{
-			ScrPolys[ i ].Xscale = 1.0F;
-			ScrPolys[ i ].Yscale = 1.0F;
+			ScrPolys[ i ].Xscale = CrosshairScale();
+			ScrPolys[ i ].Yscale = CrosshairScale();
 		}
 		else
 		{
@@ -1694,6 +1694,20 @@ void ResetCountDownBombTag( float Amount )
 			CountDown_Col = ( Countdown_Float / 300.0F );
 		}
 	}
+}
+
+/*===================================================================
+	Procedure	:	Scale of the crosshair and trojax power bar
+	Output		:	float	scale
+	Notes		:	CrosshairScaleSlider 0 means follow the text scale,
+					otherwise it is a fixed multiple of the original size.
+===================================================================*/
+extern SLIDER CrosshairScaleSlider;
+float CrosshairScale( void )
+{
+	if( CrosshairScaleSlider.value > 0 )
+		return (float) CrosshairScaleSlider.value;
+	return FontWidth / 8.0F;
 }
 
 /*===================================================================
