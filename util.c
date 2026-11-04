@@ -15,6 +15,11 @@ bool DebugLog = false;
 #ifdef WIN32
 #include <windows.h>	// for various things
 #include <ctype.h>		// for toupper
+#else
+#include <ctype.h>
+#include <dirent.h>
+#include <strings.h>
+#include <unistd.h>
 #endif
 #include <SDL.h>
 
@@ -33,6 +38,78 @@ char * convert_char( char from, char to, char* in )
 	return in;
 }
 
+#ifndef WIN32
+/*
+ * The game data was authored on a case insensitive file system and the
+ * code refers to files with whatever case the original tools used.
+ * convert_path() lowercases everything which matches the bulk of the data,
+ * but a few files (fishy's bgobjects/models for example) ship with mixed
+ * case names. Previously that made the level fail to load and the game exit.
+ * If the lowercased path does not exist, walk it one component at a time and
+ * look for a case insensitive match instead.
+ */
+static void resolve_path_case( char * path )
+{
+	char * start = path;
+	char * end;
+	char saved;
+	DIR * dir;
+	struct dirent * entry;
+
+	if ( access( path, F_OK ) == 0 )
+		return;
+
+	while ( *start == '/' )
+		start++;
+
+	while ( *start )
+	{
+		end = strchr( start, '/' );
+		if ( end )
+			*end = 0;
+
+		if ( access( path, F_OK ) != 0 )
+		{
+			// open the parent folder of this component
+			if ( start == path )
+				dir = opendir( "." );
+			else
+			{
+				saved = start[-1];
+				start[-1] = 0;
+				dir = opendir( start - 1 == path ? "/" : path );
+				start[-1] = saved;
+			}
+			if ( !dir )
+			{
+				if ( end ) *end = '/';
+				return;
+			}
+			while ( ( entry = readdir( dir ) ) != NULL )
+			{
+				if ( !strcasecmp( entry->d_name, start ) )
+				{
+					memcpy( start, entry->d_name, strlen( start ) );
+					break;
+				}
+			}
+			closedir( dir );
+			if ( !entry )
+			{
+				// no match: leave the remainder as is
+				if ( end ) *end = '/';
+				return;
+			}
+		}
+
+		if ( !end )
+			break;
+		*end = '/';
+		start = end + 1;
+	}
+}
+#endif
+
 char* convert_path( char* _str )
 {
 #ifdef WIN32
@@ -40,7 +117,8 @@ char* convert_path( char* _str )
 #else
 	static char temp[500];
 	char * str = temp;
-	strncpy( temp, _str, sizeof(temp) );
+	strncpy( temp, _str, sizeof(temp) - 1 );
+	temp[ sizeof(temp) - 1 ] = 0;
 	while (*str)
 	{
 		if (*str == '\\')
@@ -49,6 +127,7 @@ char* convert_path( char* _str )
 			*str = (char) tolower(*str);
 		str++;
 	}
+	resolve_path_case( temp );
 	return temp;
 #endif
 }
