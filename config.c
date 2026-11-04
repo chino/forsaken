@@ -44,12 +44,12 @@ USERCONFIG default_config = {
 	0,								// roll control...
 	0.05F,							// autolevel rate
 //	{ num_keys, { key list [ num_keys ] } },
-	{ 2,	{ SDLK_UP	} },					// pitch forward
-	{ 2,	{ SDLK_DOWN	} },					// pitch backward
-	{ 2,	{ SDLK_LEFT	} },					// yaw left
-	{ 2,	{ SDLK_RIGHT	} },				// yaw right
-	{ 2,	{ SDLK_q		} },				// roll left
-	{ 2,	{ SDLK_e		} },				// roll right
+	{ 1,	{ SDLK_UP	} },					// pitch forward
+	{ 1,	{ SDLK_DOWN	} },					// pitch backward
+	{ 1,	{ SDLK_LEFT	} },					// yaw left
+	{ 1,	{ SDLK_RIGHT	} },				// yaw right
+	{ 1,	{ SDLK_q		} },				// roll left
+	{ 1,	{ SDLK_e		} },				// roll right
 	{ 1,	{ SDLK_1 } },						// slide left
 	{ 1,	{ SDLK_3 } },						// slide right
 	{ 1,	{ SDLK_KP_MINUS } },				// slide up
@@ -61,8 +61,8 @@ USERCONFIG default_config = {
 	{ 1,	{ SDLK_s	} },					// turbo
 	{ 0, {}  },										// cruise faster
 	{ 0, {}  },										// cruise slower
-	{ 2,	{ LEFT_MOUSE } },					// fire primary
-	{ 2,	{ RIGHT_MOUSE } },					// fire secondary
+	{ 1,	{ LEFT_MOUSE } },					// fire primary
+	{ 1,	{ RIGHT_MOUSE } },					// fire secondary
 	{ 1,	{ SDLK_b } },						// fire mine
 	{ 1,	{ SDLK_PAGEDOWN } },					// select next primary
 	{ 1,	{ SDLK_PAGEUP } },					// select prev primary
@@ -1479,6 +1479,19 @@ const char *key_name( int keycode )
 }
 
 
+// name of a keyboard or mouse binding as written to the pilot file, or NULL
+// for joystick bindings (written in the JOYSTICK section) and for codes that
+// have no name, such as an empty key slot (0): printing those used to put
+// "(null)" in the file
+static const char *
+write_key_name( VirtualKeycode key )
+{
+	if ( KEY_ON_KEYBOARD( key ) || KEY_ON_MOUSE( key ) )
+		return key_fullname( key );
+	return NULL;
+}
+
+
 static void
 write_keydef( FILE *f, char *ctl_name, USERKEY *keydef )
 {
@@ -1486,7 +1499,7 @@ write_keydef( FILE *f, char *ctl_name, USERKEY *keydef )
 
 	for ( k = 0; k < keydef->keys; k++ )
 	{
-		if ( KEY_ON_KEYBOARD( keydef->key[ k ] ) || KEY_ON_MOUSE( keydef->key[ k ] ) )
+		if ( write_key_name( keydef->key[ k ] ) )
 			break;
 	}
 
@@ -1495,8 +1508,9 @@ write_keydef( FILE *f, char *ctl_name, USERKEY *keydef )
 		fprintf( f, "%s\t", ctl_name );
 		for ( k = 0; k < keydef->keys; k++ )
 		{
-			if ( KEY_ON_KEYBOARD( keydef->key[ k ] ) || KEY_ON_MOUSE( keydef->key[ k ] ) )
-				fprintf( f, "\t%s", key_fullname( keydef->key[ k ] ) );
+			const char *name = write_key_name( keydef->key[ k ] );
+			if ( name )
+				fprintf( f, "\t%s", name );
 		}
 		fprintf( f, "\n" );
 	}
@@ -1511,7 +1525,7 @@ write_keydef_indexed( FILE *f, char *ctl_name, USERKEY *keydef, int index )
 	keydef += index;
 	for ( k = 0; k < keydef->keys; k++ )
 	{
-		if ( KEY_ON_KEYBOARD( keydef->key[ k ] ) || KEY_ON_MOUSE( keydef->key[ k ] ) )
+		if ( write_key_name( keydef->key[ k ] ) )
 			break;
 	}
 
@@ -1522,10 +1536,11 @@ write_keydef_indexed( FILE *f, char *ctl_name, USERKEY *keydef, int index )
 
 		for ( k = 0; k < keydef->keys; k++ )
 		{
-			if ( KEY_ON_KEYBOARD( keydef->key[ k ] ) || KEY_ON_MOUSE( keydef->key[ k ] ) )
+			const char *name = write_key_name( keydef->key[ k ] );
 
-				// each string after "SELECT1 n" represents the keys associated
-				fprintf( f, "\t%s", key_fullname( keydef->key[ k ] ) );
+			// each string after "SELECT1 n" represents the keys associated
+			if ( name )
+				fprintf( f, "\t%s", name );
 		}
 		fprintf( f, "\n" );
 	}
