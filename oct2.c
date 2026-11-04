@@ -4183,6 +4183,21 @@ static void VRHeadMatrix( const float * q, MATRIX * m )
 	m->_44 = 1.0f;
 }
 
+// VRFlyDirection: the push of the sticks and the cruise, from the ship's
+// axes to where the head looks or the off hand points
+bool VRFlyMatrix( MATRIX * m )
+{
+	float q[ 4 ];
+
+	if( vr_fly_direction == 1 && vr_views_valid() )
+		VRHeadMatrix( vr_view( 0 )->quat, m );
+	else if( vr_fly_direction == 2 && vr_hand_orientation( vr_leftorium ? VR_HAND_RIGHT : VR_HAND_LEFT, q ) )
+		VRHeadMatrix( q, m );
+	else
+		return false;
+	return true;
+}
+
 // rotation part only: c = a * b
 static void VRRotationMultiply( const MATRIX * a, const MATRIX * b, MATRIX * c )
 {

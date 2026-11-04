@@ -128,6 +128,14 @@ extern bool vr_invert_pitch;
 extern bool vr_leftorium;
 extern bool vr_swap_sticks;
 
+// which way the sticks push the ship (VRFlyDirection): 0 along its nose as
+// in the original, 1 where the head looks, 2 where the off hand points.
+// The ship itself does not turn, so the guns keep their aim.
+extern int vr_fly_direction;
+
+// a hand's orientation in the cockpit, as vr_view_t's; false when untracked
+bool vr_hand_orientation( int hand, float * quat );
+
 // swivel chair: turning the body turns the ship (VRSwivel). The game takes
 // the turn, in radians, left positive, each frame it can apply it.
 extern bool vr_swivel;

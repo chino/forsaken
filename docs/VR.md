@@ -67,6 +67,7 @@ Options > Visuals (both only shown in the headset), which also has **Recenter**:
 | `VRInvertPitch = true` | false | Stick up puts the nose down, the way a flight stick works. The game's own Invert Y only changes the mouse. |
 | `VRLeftorium = true`   | false | Left-handed: the hands swap triggers, grips and face buttons, so the left trigger fires primary. The sticks stay put. |
 | `VRSwapSticks = true`  | false | Thrust and strafe on the right stick, turning on the left. |
+| `VRFlyDirection = N`   | 0     | Which way the sticks push you: 0 along the ship's nose, as in the original game; 1 where you look, so looking up and pushing forward flies you up; 2 where your other hand (the left, or the right when left-handed) points. The ship itself does not turn, so your guns keep their aim. In the pause menu's VR Options only. |
 | `VRSwivel = true`      | false | Swivel chair, for a chair that turns: turn your body and the ship turns with you, so you fly where you face and the cockpit comes round with you. The right stick still turns the ship too. |
 
 ## What you get
