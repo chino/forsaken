@@ -414,6 +414,7 @@ void GoToStats( MENUITEM *Item );
 void GetSavedGameData( void );
 
 bool SetFOV( float fov );
+static float TitleFOV( void );
 bool TintModelVertices( u_int16_t Model, float percent, EXCLUDEDVERTICES *Exclude );
 bool MakeTranslucent( u_int16_t Model );
 void GetExtremeOffsets( u_int16_t Model, PLANE *plane, float *minoffset, float *maxoffset );
@@ -4933,6 +4934,26 @@ Display Solid Lines
 }
 
 /*===================================================================
+	Procedure	:	Horizontal FOV for the title room
+	Output		:	float	horizontal fov in degrees
+	Notes		:	The title room was framed for 4:3 with a 90 degree
+					horizontal FOV.  On wider screens keep that vertical
+					FOV and widen the horizontal one instead, otherwise
+					the top and bottom of the menus are cut off.
+===================================================================*/
+static float TitleFOV( void )
+{
+	float aspect = render_info.aspect_ratio;
+	float half;
+
+	if( aspect <= ( 4.0F / 3.0F ) )
+		return START_FOV;
+
+	half = (float) tan( D2R( START_FOV * 0.5F ) ) * ( aspect / ( 4.0F / 3.0F ) );
+	return (float) atan( half ) * 2.0F * 57.2957F;
+}
+
+/*===================================================================
 	Procedure	:		Title Display...
 
 	Input		:		nothing...
@@ -4993,7 +5014,7 @@ bool DisplayTitle(void)
 		DarkenRoomForStart( NULL );
 		TitleInitDone = true;
 		NoTeamSelect = false;
-		SetFOV( START_FOV );	// in case player was using nitro when finishing level!
+		SetFOV( TitleFOV() );	// in case player was using nitro when finishing level!
 
 		if (UseNewMenus)
 			MENU_Start = MENU_NEW_Start;
@@ -5154,7 +5175,7 @@ Event handling
 	{
 		if( MyGameStatus == STATUS_Title )
 			MenuRestart( &MENU_Start );	
-		SetFOV(START_FOV);
+		SetFOV( TitleFOV() );
 	}
 
 	if (CurrentMenu)
