@@ -150,6 +150,30 @@ ifeq ($(INPUT_DISABLED),1)
   CFLAGS+= -DINPUT_DISABLED
 endif
 
+# Streamed soundtrack (music.c), replacing the original CD audio.
+# MUSIC=0 builds without it. WAV support is built in; Ogg Vorbis and FLAC
+# are enabled when pkg-config finds vorbisfile / flac, or force them with
+# MUSIC_OGG=0|1 and MUSIC_FLAC=0|1 (without pkg-config, e.g. when cross
+# compiling, plain -l flags are used; a static libFLAC also wants
+# ADD_CFLAGS=-DFLAC__NO_DLL).
+MUSIC=1
+ifeq ($(MUSIC),1)
+  MUSIC_OGG:=$(shell pkg-config --exists vorbisfile 2>/dev/null && echo 1 || echo 0)
+  MUSIC_FLAC:=$(shell pkg-config --exists flac 2>/dev/null && echo 1 || echo 0)
+  CFLAGS+= -DMUSIC
+  ifeq ($(MUSIC_OGG),1)
+    CFLAGS+= -DMUSIC_OGG $(shell pkg-config --cflags vorbisfile 2>/dev/null)
+    LIB+= $(shell pkg-config $(PKG_CFG_OPTS) --libs vorbisfile 2>/dev/null || echo -lvorbisfile -lvorbis -logg)
+  endif
+  ifeq ($(MUSIC_FLAC),1)
+    CFLAGS+= -DMUSIC_FLAC $(shell pkg-config --cflags flac 2>/dev/null)
+    LIB+= $(shell pkg-config $(PKG_CFG_OPTS) --libs flac 2>/dev/null || echo -lFLAC)
+  endif
+else
+  MUSIC_OGG=0
+  MUSIC_FLAC=0
+endif
+
 
 INC=$(wildcard *.h)
 SRC=$(wildcard *.c)
@@ -194,6 +218,7 @@ check:
 	@echo "GL = $(GL)"
 	@echo "RENDER_DISABLED = $(RENDER_DISABLED)"
 	@echo "INPUT_DISABLED = $(INPUT_DISABLED)"
+	@echo "MUSIC = $(MUSIC) (ogg $(MUSIC_OGG), flac $(MUSIC_FLAC))"
 	@echo "LUA = $(LUA)"
 	@echo "SDL = $(SDL)"
 	@echo "SDL_ = $(SDL_)"
