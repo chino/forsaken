@@ -31,6 +31,7 @@
 
 #include "main.h"
 #include "stats.h"
+#include "util.h"
 #include <stdio.h>
 #include "new3d.h"
 #include "quat.h"
