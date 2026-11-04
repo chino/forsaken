@@ -44,8 +44,8 @@ USERCONFIG default_config = {
 	0,								// roll control...
 	0.05F,							// autolevel rate
 //	{ num_keys, { key list [ num_keys ] } },
-	{ 2,	{ SDLK_DOWN	} },					// pitch forward
-	{ 2,	{ SDLK_UP	} },					// pitch backward
+	{ 2,	{ SDLK_UP	} },					// pitch forward
+	{ 2,	{ SDLK_DOWN	} },					// pitch backward
 	{ 2,	{ SDLK_LEFT	} },					// yaw left
 	{ 2,	{ SDLK_RIGHT	} },				// yaw right
 	{ 2,	{ SDLK_q		} },				// roll left
@@ -152,124 +152,10 @@ USERCONFIG default_config = {
 };
 
 
-USERCONFIG my_controls = {
-	"Player",						// player name
-	0,								// bike (0=Lokasenna)
-	1,								// bike computer ( 1 = Brenda )
-	0.6F,							// mouse x sensitivity
-	0.6F,							// mouse y sensitivity
-	0,								// pilot control (pitch forward = down, backward = up)
-	0,								// roll control...
-	0.05F,							// autolevel rate
-//	{ num_keys, { key list [ num_keys ] } },
-	{ 2,	{ SDLK_UP	} },	// pitch forward
-	{ 2,	{ SDLK_DOWN	} },	// pitch backward
-	{ 2,	{ SDLK_LEFT	} },	// yaw left
-	{ 2,	{ SDLK_RIGHT	} },	// yaw right
-	{ 2,	{ SDLK_q		} },	// roll left
-	{ 2,	{ SDLK_e		} },	// roll right
-	{ 1,	{ SDLK_1 } },					// slide left
-	{ 1,	{ SDLK_3 } },					// slide right
-	{ 1,	{ SDLK_KP_MINUS } },					// slide up
-	{ 1,	{ SDLK_KP_PLUS } },						// slide down
-	{ 1,	{ SDLK_a	} },						// forward
-	{ 1,	{ SDLK_z	} },						// backward
-	{ 1,	{ SDLK_LALT	} },					// slide
-	{ 0, {}  },										// roll
-	{ 1,	{ SDLK_s	} },						// turbo
-	{ 0, {}  },										// cruise faster
-	{ 0, {}  },										// cruise slower
-	{ 2,	{ LEFT_MOUSE	} },	// fire primary
-	{ 2,	{ RIGHT_MOUSE	} },		// fire secondary
-	{ 1,	{ SDLK_b } },						// fire mine
-	{ 1,	{ SDLK_PAGEDOWN } },						// select next primary
-	{ 1,	{ SDLK_PAGEUP } },					// select prev primary
-	{ 1,	{ SDLK_HOME } },						// select next secondary
-	{ 1,	{ SDLK_END } },						// select prev secondary
-	{ 1,	{ SDLK_r } },						// select rear view
-	{ 1,	{ SDLK_h } },						// toggle headlights
-	{
-		{ 1, { SDLK_BACKQUOTE } },				// select primary #1
-		{ 1, { SDLK_1	} },					// select primary #2
-		{ 1, { SDLK_4	} },					// select primary #3
-		{ 1, { SDLK_3	} },					// select primary #4
-		{ 1, { SDLK_2	} },					// select primary #5
-		{ 1, { SDLK_5	} },					// select primary #6
-	},
-	{
-		{ 1, { SDLK_6 } },						// select secondary #1
-		{ 1, { SDLK_7 } },						// select secondary #2
-		{ 0, {} 	},									// select secondary #3 (thief missile -- not used)
-		{ 1, { SDLK_8 } },						// select secondary #4
-		{ 1, { SDLK_9 } },						// select secondary #5
-		{ 1, { SDLK_0 } },						// select secondary #6
-		{ 1, { SDLK_MINUS } },					// select secondary #7
-		{ 1, { SDLK_y } },						// select secondary #8
-		{ 1, { SDLK_u } },						// select secondary #9
-		{ 1, { SDLK_i } },						// select secondary #10
-		{ 0, {}  },									// select secondary #11 (spider mine -- not used)
-	},
-	{ 0, {}  },										// drop primary
-	{ 0, {}  },										// drop secondary
-	{ 0, {}  },										// drop shield
-	{ 0, {}  },										// drop ammo
-	{ 0, {}  },										// show messages
-	{ 0, {} },										// show statistics
-	{ 0, {} },										// show network info
-	{ 1, { SDLK_RETURN } },					// send text message
-#ifdef PLAYER_SPEECH_TAUNTS
-	{ 0, {}  },					// send speech taunt
-#endif
-
-	// weapon selection priorities and orders
-	{
-			5,							// primary #1 priority
-			2,							// primary #2 priority
-			3,							// primary #3 priority
-			4,							// primary #4 priority
-			1,							// primary #5 priority
-			0,							// primary #6 priority
-	},
-	{
-			5,							// primary order #1 
-			4,							// primary order #2 
-			1,							// primary order #3 
-			2,							// primary order #4 
-			3,							// primary order #5 
-			0,							// primary order #6 
-	},
-	{
-			6,							// secondary #1 priority
-			5,							// secondary #2 priority
-			-1,							// secondary #3 priority
-			1,							// secondary #4 priority
-			3,							// secondary #5 priority
-			2,							// secondary #6 priority
-			0,							// secondary #7 priority
-			8,							// secondary #8 priority
-			7,							// secondary #9 priority
-			6,							// secondary #10 priority
-			-1,							// secondary #11 priority
-	},
-	{
-			6,							// secondary order #1 
-			3,							// secondary order #2 
-			5,							// secondary order #3 
-			4,							// secondary order #4 
-			1,							// secondary order #5 
-			0,							// secondary order #6 
-			9,							// secondary order #7 
-			8,							// secondary order #8 
-			7,							// secondary order #9 
-			-1,							// secondary order #10
-			-1,							// secondary order #11
-	},
-
-	"you ugly son of a bitch...",		// taunt 1 ( F9 )
-	"Time to die...",					// taunt 2 ( F10 )
-	"I will tear your soul apart...",	// taunt 3 ( F11 )
-};
-
+// the live controls of the current pilot. There is only one table of default
+// controls (default_config above): GetDefaultPilot() copies it in here before
+// reading the pilot file, so new pilots and "restore defaults" always agree.
+USERCONFIG my_controls;
 
 USERCONFIG *player_config = &my_controls;
 
