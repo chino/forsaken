@@ -414,6 +414,7 @@ typedef struct
         int16_t TriggerSfx;
         bool OnPause;
         float PauseValue;
+	bool Paused;
 	int SfxBufferIndex;
 	sound_source_t * source;
 } SFX_HOLDER;
@@ -544,6 +545,7 @@ extern LIST BikeComputerList;
 Fn Prototypes
 *****************************************/
 void InitSfxHolders( void );
+int GetSfxHolderIndex( u_int32_t uid );
 
 typedef struct
 {
@@ -1227,32 +1229,24 @@ int16_t EssentialSfx[ NUM_ESSENTIAL_SFX ] = {
 	SFX_Select_Trojax,				//	-	trojax
 };
 
+// pause everything that is playing, ReTriggerSfx() resumes it
 void PauseAllSfx( void )
 {
-	u_int16_t i;
-	SPOT_SFX_LIST temp;
-	
-	// looping sfx info has to be stored for later retriggering
-	for ( i = 0; i < MAX_LOOPING_SFX; i++ )
-	{
-		if ( SpotSfxList[ i ].used )
-		{
-			temp = SpotSfxList[ i ];
-			// StopSfx will free the source
-			// so we can't leave the old pointer here 
-			temp.source = NULL;
-			StopSfx( SpotSfxList[ i ].uid );
-			SpotSfxList[ i ] = temp;
-		}
-	}
+	int i;
 
 	for( i = 0; i < MAX_ANY_SFX; i++ )
 	{
-		if ( SfxHolder[ i ].Used )
+		if ( SfxHolder[ i ].Used && SfxHolder[ i ].source && sound_is_playing( SfxHolder[ i ].source ) )
 		{
-			StopSfx( SfxHolder[ i ].UniqueID );
+			sound_pause( SfxHolder[ i ].source );
+			SfxHolder[ i ].Paused = true;
 		}
 	}
+
+	// ProcessLoopingSfx() plays these again
+	for ( i = 0; i < MAX_LOOPING_SFX; i++ )
+		if ( SpotSfxList[ i ].used && SpotSfxList[ i ].source )
+			sound_pause( SpotSfxList[ i ].source );
 }
 
 // stop every sfx and forget the looping ones, nothing gets restarted later
@@ -1363,10 +1357,25 @@ void ReTriggerSfx( void )
 	SPOT_SFX_LIST temp;
 	u_int32_t tempuid;
 	u_int16_t i, j;
+	int holder;
 
-	// re-trigger all existing looping sfx...
+	// resume paused sfx...
+	for ( i = 0; i < MAX_ANY_SFX; i++ )
+	{
+		if ( SfxHolder[ i ].Used && SfxHolder[ i ].Paused )
+		{
+			sound_play( SfxHolder[ i ].source );
+			SfxHolder[ i ].Paused = false;
+		}
+	}
+
+	// re-trigger all existing looping sfx that lost their holder...
 	for ( i = 0; i < MAX_LOOPING_SFX; i++ )
 	{
+		holder = GetSfxHolderIndex( SpotSfxList[ i ].uid );
+		if ( holder != -1 && SfxHolder[ holder ].SfxBufferIndex == i )
+			continue;
+
 		if ( SpotSfxList[ i ].used )
 		{
 			temp = SpotSfxList[ i ];
@@ -2152,6 +2161,7 @@ int FindFreeSfxHolder( void )
 			SfxHolder[ i ].Used = true;
 			SfxHolder[ i ].UniqueID = SfxUniqueID++;
 			SfxHolder[ i ].OnPause = false;
+			SfxHolder[ i ].Paused = false;
 			SfxHolder[ i ].SndObjIndex = -1;
 			SfxHolder[ i ].SfxFlags = -1;
 			SfxHolder[ i ].SfxBufferIndex = -1;
@@ -2435,6 +2445,9 @@ void CheckSBufferList( void )
 	for( i = 0; i < MAX_ANY_SFX; i++ )
 	{
 		if ( ! SfxHolder[ i ].Used )
+			continue;
+
+		if ( SfxHolder[ i ].Paused )
 			continue;
 
 		if ( SfxHolder[ i ].OnPause )

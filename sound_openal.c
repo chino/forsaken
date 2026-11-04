@@ -268,6 +268,11 @@ void sound_stop( sound_source_t * source )
 	//DebugPrintf("sound_stop: playing %d\n",stats.playing);
 }
 
+void sound_pause( sound_source_t * source )
+{
+	alSourcePause( source->id );
+}
+
 bool sound_is_playing( sound_source_t * source )
 {
 	ALint state;
