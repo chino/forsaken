@@ -53,6 +53,7 @@ u_int16_t	WaterTPage = 0;
 WATEROBJECT	* FirstWaterObject = NULL;
 char	* WaterBuffer = NULL;
 char	* OrgWaterBuffer = NULL;
+static char * WaterBufferEnd = NULL;
 u_int16_t	GroupWaterInfo[MAXGROUPS];
 
 float	GroupDamageInfo[MAXGROUPS];
@@ -114,6 +115,7 @@ bool PreWaterLoad( char * Filename )
 	}
 	Buffer = malloc( File_Size );
 	OrgWaterBuffer = Buffer;
+	WaterBufferEnd = Buffer + File_Size;
 
 	if( !Buffer )
 	{
@@ -184,6 +186,14 @@ bool WaterLoad( void )
 	NumOfGroups = *Uint16Pnt++;
 	Buffer = (char*) Uint16Pnt;
 
+	if( NumOfGroups > MAXGROUPS || Buffer + NumOfGroups * 6 > WaterBufferEnd )
+	{
+		DebugPrintf( "Water Load : water file is corrupt, ignoring it\n" );
+		free( OrgBuffer );
+		NumOfWaterObjects = 0;
+		return true;
+	}
+
 	for( i = 0 ; i < NumOfGroups ; i++ )
 	{
 		Uint16Pnt = (u_int16_t *) Buffer;
@@ -209,13 +219,21 @@ bool WaterLoad( void )
 		return( false );
 	}
 	
-	memset(FirstWaterObject, 0, NumOfWaterObjects * sizeof(FirstWaterObject));	
+	memset(FirstWaterObject, 0, NumOfWaterObjects * sizeof(WATEROBJECT));	
 	
 	WO = FirstWaterObject;
 	WO->Group = 0;
 	WO->AnimOncePerFrame = 0;
 	for( i = 0 ; i < NumOfWaterObjects ; i++ )
 	{
+		// group, 9 floats, colour, 6 floats, 2 triggers, damage
+		if( Buffer + 72 > WaterBufferEnd || *(u_int16_t *) Buffer >= MAXGROUPS )
+		{
+			DebugPrintf( "Water Load : water object %d of %d is truncated or corrupt, ignoring the rest\n",
+				i, NumOfWaterObjects );
+			NumOfWaterObjects = i;
+			break;
+		}
 		WO->Status = WATERSTATUS_STATIC;
 		Uint16Pnt = (u_int16_t *) Buffer;
 		WO->Group = *Uint16Pnt++;
