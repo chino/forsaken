@@ -6348,7 +6348,7 @@ bool ProcessDefKey( int Key )
 		{
 			if ( KeyItem->Variable )
 			{
-				KeyDefine( KeyItem, (VirtualKeycode) Key );
+				KeyDefine( KeyItem, (VirtualKeycode) input_binding_code( Key ) );
 			}
 			done = true;
 		}
@@ -15772,7 +15772,7 @@ bool ProcessSelectKeydef( int Key )
 			{
 				char *c;
 				
-				c = (char *) key_name( Key );
+				c = (char *) key_char( Key );
 				if ( c && strlen( c ) == 1 )
 				{
 					CursorSearch( SearchKey( *c ) );
@@ -15815,7 +15815,7 @@ bool ProcessKeydef( int Key )
 		{
 			if ( KeyItem->Variable )
 			{
-				DefineKey( KeyItem, (VirtualKeycode) Key );
+				DefineKey( KeyItem, (VirtualKeycode) input_binding_code( Key ) );
 			}
 			done = true;
 		}
@@ -15958,7 +15958,7 @@ bool ProcessSlider2( int Key )
 		if ( Key )
 		{
 			char *c;
-			c = (char *) key_name( Key );
+			c = (char *) key_char( Key );
 			if ( c && strlen( c ) == 1 )
 			{
 				CursorSearch( SearchKey( *c ) );
@@ -16125,7 +16125,7 @@ bool ProcessList( int Key )
 		if ( Key )
 		{
 			char *c;
-			c = (char *) key_name( Key );
+			c = (char *) key_char( Key );
 			if ( c && strlen( c ) == 1 )
 			{
 				SelectListSearch( CurrentList, SearchKey( *c ) );
@@ -16362,7 +16362,7 @@ void ProcessSelect( int Key )
 		if ( Key )
 		{
 			char *c;
-			c = (char *) key_name( Key );
+			c = (char *) key_char( Key );
 			if ( c && strlen( c ) == 1 )
 				CursorSearch( SearchKey( *c ) );
 		}
@@ -16426,7 +16426,7 @@ bool ProcessDifficultySet ( int Key )
 		{
 			char *c;
 
-			c = (char *) key_name( Key );
+			c = (char *) key_char( Key );
 			if ( c && strlen( c ) == 1 )
 			{
 				CursorSearch( SearchKey( *c ) );
@@ -16640,7 +16640,7 @@ bool ProcessPlayerList ( int Key )
 		if ( Key )
 		{
 			char *c;
-			c = (char *) key_name( Key );
+			c = (char *) key_char( Key );
 			if ( c && strlen( c ) == 1 )
 			{
 				SelectListSearch( &PilotList, SearchKey( *c ) );
@@ -17008,7 +17008,7 @@ bool ProcessLevelList ( int Key )
 			char *c;
 
 			current = LevelList.selected_item;
-			c = (char *) key_name( Key );
+			c = (char *) key_char( Key );
 			if ( c && strlen( c ) == 1 )
 			{
 				SelectListSearch( &LevelList, SearchKey( *c ) );

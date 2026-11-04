@@ -225,6 +225,35 @@ void app_quit( void )
 // Keyboard Events
 //////////////////////////////////////////////
 
+#if SDL_VERSION_ATLEAST(2,0,0)
+static SDL_Scancode last_key_scancode = SDL_SCANCODE_UNKNOWN;
+
+// sdl2 has no keysym.unicode, typed characters arrive here
+static void app_text_input( SDL_TextInputEvent * text )
+{
+	const unsigned char * c;
+	for( c = (const unsigned char *) text->text; *c; c++ )
+		if( *c >= ' ' && *c < 127 )
+			input_buffer_send( *c );
+}
+#endif
+
+// input buffer code -> binding, keyboard bindings are scancodes on sdl2
+int input_binding_code( int code )
+{
+#if SDL_VERSION_ATLEAST(2,0,0)
+	if( code > 0 && ( ( code & SDLK_SCANCODE_MASK ) || KEY_ON_KEYBOARD( code ) ) )
+	{
+		SDL_Scancode sc = SDL_GetScancodeFromKey( (SDL_Keycode) code );
+		// shifted characters ('A', '!') have no key of their own
+		if( sc == SDL_SCANCODE_UNKNOWN )
+			sc = last_key_scancode;
+		return (int) sc;
+	}
+#endif
+	return code;
+}
+
 void app_keyboard( SDL_KeyboardEvent * key )
 {
 	if( key->type == SDL_KEYUP )
@@ -236,7 +265,7 @@ void app_keyboard( SDL_KeyboardEvent * key )
 		else if( key->keysym.sym == SDLK_RSHIFT || key->keysym.sym == SDLK_LSHIFT )
 		{
 #if SDL_VERSION_ATLEAST(2,0,0)
-				u_int8_t *keystate = SDL_GetKeyboardState(NULL);
+				const u_int8_t *keystate = SDL_GetKeyboardState(NULL);
 				if ( keystate[SDL_SCANCODE_F12] )
 #else
 				u_int8_t *keystate = SDL_GetKeyState(NULL);
@@ -248,9 +277,12 @@ void app_keyboard( SDL_KeyboardEvent * key )
 	if( key->type == SDL_KEYDOWN )
 	{
 #if SDL_VERSION_ATLEAST(2,0,0)
-		// sdl2 dropped keysym.unicode, the raw key symbol is what the
-		// menu and binding code compares against anyway
-		input_buffer_send( key->keysym.sym );
+		last_key_scancode = key->keysym.scancode;
+		// printable characters come from SDL_TEXTINPUT while it is active
+		if( !SDL_IsTextInputActive() ||
+		    key->keysym.sym < ' ' || key->keysym.sym >= 127 ||
+		    ( key->keysym.mod & ( KMOD_CTRL | KMOD_ALT | KMOD_GUI ) ) )
+			input_buffer_send( key->keysym.sym );
 #else
 		input_buffer_send(
 			key->keysym.unicode ?
@@ -757,7 +789,7 @@ bool handle_events( void )
 // now it's an x/y axis since it supports mouse wheel balls
 #if SDL_VERSION_ATLEAST(2,0,0)
 		case SDL_MOUSEWHEEL:
-			app_mouse_wheel( &_event );
+			app_mouse_wheel( &_event.wheel );
 			break;
 #endif
 
@@ -767,7 +799,7 @@ bool handle_events( void )
 // TODO - we should call something like app_window
 //        which then delegates to app_active in correct case
 		case SDL_WINDOWEVENT:
-			app_active( &_event );
+			app_active( &_event.window );
 			break;
 #else
 		case SDL_ACTIVEEVENT:
@@ -787,40 +819,7 @@ bool handle_events( void )
 			break;
 #endif
 
-// the newer sdl now uses a union instead of sub structures
-#if SDL_VERSION_ATLEAST(2,0,0)
-		case SDL_KEYDOWN:
-		case SDL_KEYUP:
-			app_keyboard( &_event );
-			break;
-
-		case SDL_MOUSEBUTTONDOWN:
-		case SDL_MOUSEBUTTONUP:
-			app_mouse_button( &_event );
-			break;
-
-		case SDL_MOUSEMOTION:
-			app_mouse_motion( &_event );
-			break;
-
-		case SDL_JOYAXISMOTION:
-			app_joy_axis( &_event );
-			break;
-
-		case SDL_JOYBALLMOTION:
-			app_joy_ball( &_event );
-			break;
-
-		case SDL_JOYBUTTONDOWN:
-		case SDL_JOYBUTTONUP:
-			app_joy_button( &_event );
-			break;
-
-		case SDL_JOYHATMOTION:
-			app_joy_hat( &_event );
-			break;
-
-#else
+// sdl 1.2 and sdl2 name these union members the same way
 		case SDL_KEYDOWN:
 		case SDL_KEYUP:
 			app_keyboard( &_event.key );
@@ -852,12 +851,20 @@ bool handle_events( void )
 			app_joy_hat( &_event.jhat );
 			break;
 
-#endif
-
 		case SDL_QUIT:
 			app_quit();
 			break;
 
+#if SDL_VERSION_ATLEAST(2,0,0)
+		case SDL_TEXTINPUT:
+			app_text_input( &_event.text );
+			break;
+
+		case SDL_TEXTEDITING:
+		case SDL_KEYMAPCHANGED:
+			break;
+
+#endif
 		// platform specific _event type
 		// must be enabled using SDL_EventState(SDL_SYSWMEVENT, SDL_ENABLE)
 		case SDL_SYSWMEVENT:

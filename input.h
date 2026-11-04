@@ -70,6 +70,9 @@ bool handle_events( void );
 int input_buffer[MAX_INPUT_BUFFER];
 int input_buffer_count;
 int input_buffer_find( int code );
+
+// input buffer code -> value stored in a control binding
+int input_binding_code( int code );
 void input_buffer_reset( void );
 
 ///////////
