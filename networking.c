@@ -12,6 +12,7 @@
 #include "bgobjects.h"
 #include "object.h"
 #include "networking.h"
+#include "util.h"
 #include "2dtextures.h"
 #include "mload.h"
 #include "triggers.h"

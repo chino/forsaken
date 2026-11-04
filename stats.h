@@ -18,6 +18,7 @@ void ResetAllStats();																			// Resets all statistics
 void ResetIndividualStats(int Player);													// Resets one player's statistics
 void ScoreSort();																				// Sorts player's score from highest to lowest
 void InitScoreSortTab(int Player);														// Initiate Score Sort Tab player IDs
+int GetFriendlyKills(int Player);
 int GetTotalKills(int Killer);																	// Get total number of kills (not including suicides)
 int GetTotalDeaths(int Victim);															// Get total number of deaths
 int GetKillStats(int Killer, int Victim);													// Get an individual kill statistic
