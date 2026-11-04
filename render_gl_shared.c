@@ -1,5 +1,8 @@
 #ifdef GL
 #include "render_gl_shared.h"
+#ifdef VR_OPENXR
+#include "vr.h"
+#endif
 
 // windows needs explicit retrieval of newer GL functions...
 /*
@@ -703,7 +706,13 @@ bool FSClear(XYRECT * rect)
 	int width = rect->x2 - rect->x1;
 	int height = rect->y2 - rect->y1;
 	int x = rect->x1;
-	int y = render_info.ThisMode.h - rect->y1 - height;
+	int y = rect->y1;
+	int surface_h = render_info.ThisMode.h;
+#ifdef VR_OPENXR
+	// the rectangle is in window coordinates, the target may be an eye
+	vr_scale_rect( &x, &y, &width, &height, &surface_h );
+#endif
+	y = surface_h - y - height;
 	// here we employ a stencil buffer so that we
 	// only clear the desired part of the screen
 	glEnable(GL_SCISSOR_TEST);
@@ -735,11 +744,22 @@ bool FSGetViewPort(render_viewport_t *view)
 {
 	GLint i[4];
 	GLfloat f[2];
+	int surface_h = render_info.ThisMode.h;
 	// scalex/y are not modified here
 	// xywh
 	glGetIntegerv( GL_VIEWPORT, i );
+#ifdef VR_OPENXR
+	// back from the bound target to window coordinates
+	{
+		int x = i[0], w = i[2], h = i[3], y;
+		surface_h = vr_surface_height();
+		y = surface_h - (i[1] + i[3]);
+		vr_unscale_rect( &x, &y, &w, &h, &surface_h );
+		i[0] = x; i[1] = surface_h - (y + h); i[2] = w; i[3] = h;
+	}
+#endif
 	view->X	= i[0];
-	view->Y	= render_info.ThisMode.h - (i[1] + i[3]);
+	view->Y	= surface_h - (i[1] + i[3]);
 	view->Width	= i[2];
 	view->Height = i[3];
 	// near,far
@@ -759,8 +779,15 @@ bool FSSetViewPort(render_viewport_t *view)
 {
 	// render_viewport_t x/y starts top/left
 	// but glViewport starts from bottom/left
-	int bottom = render_info.ThisMode.h - (view->Y + view->Height);
-	glViewport(	view->X, bottom, (GLint) view->Width, (GLint) view->Height	);
+	int x = view->X, y = view->Y, w = view->Width, h = view->Height;
+	int surface_h = render_info.ThisMode.h;
+	int bottom;
+#ifdef VR_OPENXR
+	// the viewport is in window coordinates, the target may be an eye
+	vr_scale_rect( &x, &y, &w, &h, &surface_h );
+#endif
+	bottom = surface_h - (y + h);
+	glViewport(	x, bottom, (GLint) w, (GLint) h	);
 	// sets the min/max depth values to render
 	// default is max 1.0f and min 0.0f
 	// this is here for compatibility with d3d9
