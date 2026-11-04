@@ -44,6 +44,9 @@ function init( debug )
 	-- newer system luasocket keep its own lua modules ahead of ours.
 	local core = require("socket.core")
 	local version = core and core._VERSION or ""
+	-- luasocket 2.0 registers its core as "socket" too, which would
+	-- stop require("socket") from loading socket.lua
+	if package.loaded.socket == core then package.loaded.socket = nil end
 	if string.match(version, "^LuaSocket 2%.") then
 		package.path = "./scripts/?.lua;" .. package.path
 	else
