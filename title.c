@@ -12973,6 +12973,15 @@ void LoadLevelPic(MENUITEM *Item)
 	float xmin, xmax, ymin, ymax;
 	FRAME_INFO **header;
 	int frame = 0;
+	char pic[ 128 ];
+
+	// many levels have no picture, don't show a blank or stale one
+	Change_Ext( MissionTextPics[ NewLevelNum ], pic, ".PNG" );
+	if ( !File_Exists( pic ) )
+	{
+		KillLevelPic( NULL );
+		return;
+	}
 
 	strcpy( Tloadheader.PlaceHolderFile[ Title_LevelPics_Header->vid_tpage_index ], MissionTextPics[ NewLevelNum ] );
 
