@@ -2656,7 +2656,7 @@ void PrintLoopingSfxDebug( void )
 void ProcessLoopingSfx( void )
 {
 	float	Modify = 0.0f, Distance = 0.0f, MaxDistance = 0.0f;
-	int i=0, flags=0;
+	int i=0, j=0, flags=0;
 	long Volume = 0;
 	bool InRange = false;
 	VECTOR Temp = {0.0f,0.0f,0.0f};
@@ -2734,6 +2734,15 @@ void ProcessLoopingSfx( void )
 		}
 
 		SpotSfxList[ i ].distance = Distance;
+
+		// only the nearest copy of a looping sfx plays, several copies of
+		// the same loop restarting out of phase turn into a loud buzz
+		for ( j = 0; InRange && j < MAX_LOOPING_SFX; j++ )
+			if ( j != i && SpotSfxList[ j ].used && SpotSfxList[ j ].source &&
+				SpotSfxList[ j ].sfxindex == SpotSfxList[ i ].sfxindex &&
+				( SpotSfxList[ j ].distance < Distance ||
+				( SpotSfxList[ j ].distance == Distance && j < i ) ) )
+				InRange = false;
 
 		// if not in range
 		if ( !InRange )
