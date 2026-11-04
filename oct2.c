@@ -4153,6 +4153,7 @@ bool RenderCurrentCameraInStereo( RenderCurrentCameraPt render_camera )
 	return true;
 }
 
+void DrawFrameRateInfo(void);
 void DrawMainGameMenu(void)
 {
     if( CurrentMenu && CurrentMenuItem )
@@ -4165,6 +4166,7 @@ void DrawMainGameMenu(void)
     {
           DrawSimplePanel();
     }
+    DrawFrameRateInfo();
 }
 
 bool RenderMainCamera2dPolys(void);
@@ -5273,9 +5275,10 @@ extern bool ShowInfo;
 extern	u_int16_t		NumGroupsVisible;
 extern u_int16_t	GroupImIn;
 
+static char fps_str[64];
+
 bool Our_CalculateFrameRate(void)
 {
-	char buf[256];
 	static int avg_time_per_frame = 0;
 
 	// every 25 frames
@@ -5294,17 +5297,42 @@ bool Our_CalculateFrameRate(void)
 			// average time per frame in milliseconds
 			avg_time_per_frame = (int)((1.0F / FPS) * 1000.0F);
 
+			// only rebuild the string when the numbers change
+			snprintf( fps_str, sizeof(fps_str), "FPS %d - AVG F %d MS", (int) FPS, avg_time_per_frame );
+
 			//
 			our_count = 0;
 		}
 	}
-  
-	// display the framerate
-	if( ShowFrameRate )
+
+#ifdef DEMO_SUPPORT
+    // some stupid place for a demo calculation
+	if( MyGameStatus == STATUS_PlayingDemo )
 	{
-		sprintf(&buf[0], "FPS %d - AVG F %d MS", (int) FPS, avg_time_per_frame );
-		CenterPrint4x5Text( (char *) &buf[0] , FontHeight, 2 );
+		QueryPerformanceFrequency((LARGE_INTEGER *) &Freq);
+		QueryPerformanceCounter((LARGE_INTEGER *) &DemoEndedTime);
+		TimeDiff = DemoEndedTime - DemoStartedTime;
+		DemoTotalTime = ( (float) TimeDiff / (float) Freq );
+		DemoAvgFps = DemoGameLoops / DemoTotalTime;
 	}
+#endif
+
+	return true;
+}
+
+/*===================================================================
+  Procedure :  Draw the frame rate and debug info text
+  Notes     :  Must be called before the screen polys are rendered,
+               like the rest of the HUD, or the text is thrown away
+               before it is ever drawn.
+===================================================================*/
+void DrawFrameRateInfo(void)
+{
+	char buf[256];
+
+	// display the framerate
+	if( ShowFrameRate && fps_str[0] )
+		CenterPrint4x5Text( fps_str, FontHeight, 2 );
 
 	if( ShowInfo )
 	{
@@ -5361,20 +5389,6 @@ bool Our_CalculateFrameRate(void)
 		}
 
 	}
-
-#ifdef DEMO_SUPPORT
-    // some stupid place for a demo calculation
-	if( MyGameStatus == STATUS_PlayingDemo )
-	{
-		QueryPerformanceFrequency((LARGE_INTEGER *) &Freq);
-		QueryPerformanceCounter((LARGE_INTEGER *) &DemoEndedTime);
-		TimeDiff = DemoEndedTime - DemoStartedTime;
-		DemoTotalTime = ( (float) TimeDiff / (float) Freq );
-		DemoAvgFps = DemoGameLoops / DemoTotalTime;
-	}
-#endif
-
-	return true;
 }
 
 /*===================================================================
