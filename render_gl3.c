@@ -277,6 +277,10 @@ bool draw_render_object( RENDEROBJECT *renderObject, int primitive_type, bool or
 			glDisableVertexAttribArray( loc );
 	}
 
+	// FSLock*Buffer() expect nothing to be bound
+	glBindBuffer( GL_ARRAY_BUFFER, 0 );
+	glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, 0 );
+
 	CHECK_GL_ERRORS;
 
 	return true;
