@@ -3100,6 +3100,7 @@ MENU	MENU_Help =
 		HELPKEY( 200, 208, "F6", LT_MENU_Help7	/*"Toggle rear camera" */),
 		HELPKEY( 200, 224, "F7", LT_MENU_Help8	/*"Toggle missile camera"*/ ),
 		HELPKEY( 200, 240, "F8", LT_MENU_Help9	/*"Toggle player names" */),
+		HELPKEY( 200, 256, "F12", "Save screenshot" ),
 
 		{ 200, 272, 0, 0, 0, LT_MENU_Help10/*"Return to game"*/, 0, 0, NULL, NULL, MenuItemBack, MenuItemDrawName, NULL, 0 },
 
