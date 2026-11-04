@@ -34,19 +34,29 @@ local assert	= assert
 local pcall	= pcall
 local loadstring	= loadstring
 
+local type	= type
+
 module("games")
 
 local url = "http://fly.thruhere.net/status/games.json"
 
+-- the request blocks the menu while it runs and socket.http defaults to a
+-- 60 second timeout, so a dead server froze the join screen (issue #251)
+local timeout = 3 -- seconds
+
 function get( url )
 	local list = {}
-	local body, code, headers = http.request(url)
-	if code ~= 200 then return list end
+	local old_timeout = http.TIMEOUT
+	http.TIMEOUT = timeout
+	local ok, body, code = pcall(http.request, url)
+	http.TIMEOUT = old_timeout
+	if not ok or code ~= 200 or type(body) ~= "string" then return list end
 	body = "return " .. body
 	local rv,f = pcall(loadstring, body)
 	if not (rv and f) then return list end
-	list = f()
-	return list
+	local ok, result = pcall(f)
+	if not ok or type(result) ~= "table" then return list end
+	return result
 end
 
 -----------------------------------------------------------------------------
@@ -65,16 +75,23 @@ function length()
 	return table.maxn(list)
 end
 
+-- the C side expects strings, guard against malformed entries
+local function field_at( index, field )
+	local game = list[index]
+	if type(game) ~= "table" or game[field] == nil then return "" end
+	return game[field]
+end
+
 function name_at( index )
-	return list[index].nick
+	return field_at( index, "nick" )
 end
 
 function ip_at( index )
-	return list[index].ip
+	return field_at( index, "ip" )
 end
 
 function port_at( index )
-	return list[index].port
+	return field_at( index, "port" )
 end
 
 
