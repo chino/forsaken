@@ -8168,6 +8168,13 @@ void GetDefaultPilot(void)
 	// read in the biker config
 	read_config( player_config, biker_config );
 
+#ifdef VR_OPENXR
+	// headset controllers work before any pilot has been saved
+	// (joysticks the pilot file already set up are left alone)
+	if ( vr_active() )
+		DefaultJoystickSettings( player_config );
+#endif
+
 	// if the bike selected is not valid
 	if ( player_config->bike > ( BikeList.items - 1 ) )
 

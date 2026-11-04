@@ -15,6 +15,9 @@
 #include "models.h"
 #include "mxaload.h"
 #include "config.h"
+#ifdef VR_OPENXR
+#include "vr.h"
+#endif
 #include "util.h"
 
 extern LIST BikeList;
@@ -1197,6 +1200,42 @@ int AddButton( int joystick, int button, USERKEY *k )
 }
 
 
+#ifdef VR_OPENXR
+// Headset controllers: twin stick flying, triggers fire, grips rise and
+// sink, face buttons for nitro, mines and rolls. All of it can be changed
+// in the joystick menus like any other joystick.
+static void ConfigureVRControllers( int joystick, USERCONFIG *u )
+{
+	JOYSTICKINFO *joy = &JoystickInfo[ joystick ];
+	int k;
+
+	DebugPrintf( "DefaultJoystickSettings: configuring '%s'\n", joy->Name );
+	for ( k = AXIS_Start; k <= AXIS_End; k++ )
+	{
+		joy->Axis[ k ].action = SHIPACTION_Nothing;
+		joy->Axis[ k ].sensitivity = 0.02F;
+		joy->Axis[ k ].deadzone = 20;
+		joy->Axis[ k ].inverted = false;
+		joy->Axis[ k ].fine = true;
+	}
+	joy->Axis[ VR_AXIS_LEFT_X ].action  = SHIPACTION_SlideLeft;
+	joy->Axis[ VR_AXIS_LEFT_Y ].action  = SHIPACTION_MoveForward;
+	joy->Axis[ VR_AXIS_RIGHT_X ].action = SHIPACTION_RotateLeft;
+	joy->Axis[ VR_AXIS_RIGHT_Y ].action = SHIPACTION_RotateUp;
+
+	AddButton( joystick, VR_BUTTON_RIGHT_TRIGGER, &u->fire_primary );
+	AddButton( joystick, VR_BUTTON_LEFT_TRIGGER,  &u->fire_secondary );
+	AddButton( joystick, VR_BUTTON_RIGHT_GRIP,    &u->move_up );
+	AddButton( joystick, VR_BUTTON_LEFT_GRIP,     &u->move_down );
+	AddButton( joystick, VR_BUTTON_A,             &u->turbo );
+	AddButton( joystick, VR_BUTTON_B,             &u->fire_mine );
+	AddButton( joystick, VR_BUTTON_X,             &u->roll_left );
+	AddButton( joystick, VR_BUTTON_Y,             &u->roll_right );
+	AddButton( joystick, VR_BUTTON_LEFT_STICK,    &u->select_next_primary );
+	AddButton( joystick, VR_BUTTON_RIGHT_STICK,   &u->select_next_secondary );
+}
+#endif
+
 void DefaultJoystickSettings( USERCONFIG *u )
 {
 	int j, k;
@@ -1212,6 +1251,15 @@ void DefaultJoystickSettings( USERCONFIG *u )
 			JoystickInfo[ j ].assigned );
 		if ( JoystickInfo[ j ].connected && !JoystickInfo[ j ].assigned )
 		{
+#ifdef VR_OPENXR
+			if ( !strcasecmp( JoystickInfo[ j ].Name, VR_JOYSTICK_NAME ) )
+			{
+				ConfigureVRControllers( j, u );
+				JoystickInfo[ j ].assigned = true;
+				SetUpJoystickAxis( j );
+				continue;
+			}
+#endif
 			// if spaceorb...
 			if ( !strcasecmp( JoystickInfo[ j ].Name, "Spacetec SpaceOrb 360" ) )
 			{
