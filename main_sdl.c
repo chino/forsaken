@@ -2,7 +2,9 @@
 #include "util.h"
 #include "version.h"
 #include "main_sdl.h"
-#ifdef GL
+#if defined(GLES) && !SDL_VERSION_ATLEAST(2,0,0)
+#include "eglport.h" // SDL 1.2 can not create GLES contexts
+#elif defined(GL) && !defined(GLES)
 #include "SDL_opengl.h"
 #endif
 
@@ -138,7 +140,12 @@ static void set_opengl_settings( void )
 	SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER,	  1);
 
 #if SDL_VERSION_ATLEAST(2,0,0)
-#if GL == 3
+#if defined(GLES)
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 1);
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
+	SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 16);
+#elif GL == 3
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
 	// TODO - this isn't only mac osx specific is it ?
@@ -156,7 +163,7 @@ static void set_opengl_settings( void )
 	}
 
 // this is now done during creation of the renderer
-#if !SDL_VERSION_ATLEAST(2,0,0)
+#if !SDL_VERSION_ATLEAST(2,0,0) && !defined(GLES)
 	DebugPrintf("vsync set to %d\n",render_info.vsync);
 	SDL_GL_SetAttribute(SDL_GL_SWAP_CONTROL,	render_info.vsync );
 #endif
@@ -199,7 +206,7 @@ static u_int32_t create_video_flags( void )
 {
 	u_int32_t flags = SDL_ANYFORMAT;
 
-#ifdef GL
+#if defined(GL) && !defined(GLES)
 	flags |= SDL_OPENGL;
 #endif
 
@@ -240,10 +247,56 @@ static u_int32_t create_window_flags( void )
 
 
 
+#if SDL_VERSION_ATLEAST(2,0,0) && defined(GLES)
+
+// resize the window on mode changes so the context and textures survive
+static bool create_gles_window( u_int32_t window_flags )
+{
+	if(render_info.window)
+	{
+		SDL_SetWindowFullscreen(render_info.window, 0);
+		SDL_SetWindowSize(render_info.window, render_info.ThisMode.w, render_info.ThisMode.h);
+		if(window_flags & SDL_WINDOW_FULLSCREEN)
+			SDL_SetWindowFullscreen(render_info.window, SDL_WINDOW_FULLSCREEN);
+	}
+	else
+	{
+		render_info.window = SDL_CreateWindow(
+			"ProjectX",
+			SDL_WINDOWPOS_CENTERED,
+			SDL_WINDOWPOS_CENTERED,
+			render_info.ThisMode.w,
+			render_info.ThisMode.h,
+			window_flags
+			);
+		if(!render_info.window)
+		{
+			Msg("main_sdl: failed to create window: %s\n",SDL_GetError());
+			return false;
+		}
+		render_info.gl_context = SDL_GL_CreateContext(render_info.window);
+		if(!render_info.gl_context)
+		{
+			Msg("main_sdl: failed to create GLES 1.1 context: %s\n",SDL_GetError());
+			return false;
+		}
+	}
+	DebugPrintf("vsync set to %d\n",render_info.vsync);
+	if(SDL_GL_SetSwapInterval(render_info.vsync ? 1 : 0) < 0)
+		DebugPrintf("main_sdl: failed to set swap interval: %s\n",SDL_GetError());
+	return true;
+}
+
+#endif
+
 static bool create_video_surface( u_int32_t window_flags, u_int32_t renderer_flags )
 {
 #ifndef RENDER_DISABLED
-  #if SDL_VERSION_ATLEAST(2,0,0)
+  #if SDL_VERSION_ATLEAST(2,0,0) && defined(GLES)
+	(void) renderer_flags;
+	if(!create_gles_window( window_flags ))
+		return false;
+  #elif SDL_VERSION_ATLEAST(2,0,0)
 	render_info.window = SDL_CreateWindow(
 		"ProjectX",
 		SDL_WINDOWPOS_CENTERED,
@@ -281,6 +334,16 @@ static bool create_video_surface( u_int32_t window_flags, u_int32_t renderer_fla
 		Msg("main_sdl: failed to create video surface: %s\n",SDL_GetError());
 		return false;
 	}
+
+   #ifdef GLES
+	// a new video mode means a new window, so start EGL over
+	EGL_Close();
+	if(EGL_Open(render_info.ThisMode.w, render_info.ThisMode.h) != 0)
+	{
+		Msg("main_sdl: failed to create GLES context with EGL\n");
+		return false;
+	}
+   #endif
   #endif
 	
 	print_info();
@@ -348,9 +411,26 @@ bool sdl_init_video( void )
 
 void sdl_render_present( render_info_t * info )
 {
-#if SDL_VERSION_ATLEAST(2,0,0)
+#if SDL_VERSION_ATLEAST(2,0,0) && defined(GLES)
+	SDL_GL_SwapWindow(info->window);
+#elif SDL_VERSION_ATLEAST(2,0,0)
 	SDL_RenderPresent(info->renderer);
+#elif defined(GLES)
+	EGL_SwapBuffers();
 #else
 	SDL_GL_SwapBuffers();
+#endif
+}
+
+void sdl_cleanup_video( void )
+{
+#if defined(GLES) && !defined(RENDER_DISABLED)
+  #if SDL_VERSION_ATLEAST(2,0,0)
+	if(render_info.gl_context)
+		SDL_GL_DeleteContext(render_info.gl_context);
+	render_info.gl_context = NULL;
+  #else
+	EGL_Close();
+  #endif
 #endif
 }

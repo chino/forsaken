@@ -84,6 +84,19 @@ GL=1
 $(if $(shell test "$(GL)" -ge 3 -a "$(SDL)" -lt 2 && echo fail), \
      $(error "GL >= 3 only supported with SDL >= 2"))
 
+# use OpenGL ES 1.1 instead of desktop OpenGL (ARM boards, phones...)
+# with SDL=2 SDL creates the context, with SDL=1 EGL is used directly.
+GLES?=0
+ifeq ($(GLES),1)
+  ifneq ($(GL),1)
+    $(error "GLES=1 is only supported with GL=1")
+  endif
+  GLES_CFLAGS?=$(shell pkg-config --cflags glesv1_cm 2>/dev/null)
+  GLES_LIBS?=$(shell pkg-config --libs glesv1_cm 2>/dev/null || echo -lGLESv1_CM)
+  EGL_LIBS?=$(shell pkg-config --libs egl 2>/dev/null || echo -lEGL)
+  CFLAGS+= -DGLES $(GLES_CFLAGS)
+endif
+
 # library headers
 CFLAGS+= `pkg-config --cflags $(SDL_) $(LUA) $(LUA)-socket libenet libpng zlib openal`
 ifeq ($(MACOSX),1)
@@ -115,6 +128,11 @@ else ifeq ($(MACOSX),1)
   #LIB += -L/usr/X11/lib/ -lGL -lGLU
   LIB += -framework OpenGL # OpenGL bundle on OSX.
   LIB += -framework Cocoa  # Used to target Quartz by SDL_.
+else ifeq ($(GLES),1)
+  LIB += $(GLES_LIBS)
+  ifeq ($(SDL),1)
+    LIB += $(EGL_LIBS)
+  endif
 else
   LIB += -lGL -lGLU
 endif
@@ -192,6 +210,7 @@ check:
 	@echo "CROSS = $(CROSS)"
 	@echo "BOT = $(BOT)"
 	@echo "GL = $(GL)"
+	@echo "GLES = $(GLES)"
 	@echo "RENDER_DISABLED = $(RENDER_DISABLED)"
 	@echo "INPUT_DISABLED = $(INPUT_DISABLED)"
 	@echo "LUA = $(LUA)"
