@@ -50,6 +50,14 @@ jobs:
           brew install autoconf automake libtool gnu-sed findutils pkgconf sdl2
           echo "$(brew --prefix gnu-sed)/libexec/gnubin" >> $GITHUB_PATH
           echo "$(brew --prefix findutils)/libexec/gnubin" >> $GITHUB_PATH
+          # libs/make.sh uses dyldinfo, which xcode 15 dropped
+          mkdir -p "$RUNNER_TEMP/bin"
+          cat > "$RUNNER_TEMP/bin/dyldinfo" <<'EOF'
+          #!/bin/sh
+          otool -L "$2" | awk 'NR > 1 { print $1 }'
+          EOF
+          chmod +x "$RUNNER_TEMP/bin/dyldinfo"
+          echo "$RUNNER_TEMP/bin" >> $GITHUB_PATH
 
       - name: Clone forsaken-libs
         if: ${{ !matrix.distro-libs }}
@@ -70,6 +78,9 @@ jobs:
 
       - name: Build SDL=1 GL=1
         run: $BUILD
+
+      - name: Show linked libraries
+        run: ${{ runner.os == 'macOS' && 'otool -L' || 'ldd' }} projectx
 
       - name: Build SDL=2 GL=3 (SDL2 from the system)
         run: make clean && $BUILD SDL=2 GL=3
