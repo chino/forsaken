@@ -141,6 +141,7 @@ void DeleteSeperatorDigit( u_int16_t * DigitArray );
 void StartCountDown( int16_t Minutes, int16_t Seconds );
 void ClearCountdownBuffers( void );
 void AddScreenPolyText( u_int16_t Frame, float XPos, float YPos, u_int8_t Red, u_int8_t Green, u_int8_t Blue, u_int8_t Trans );
+float CrosshairScale( void );
 void AddScreenPolyTextColor( u_int16_t Frame, float XPos, float YPos, int Color, u_int8_t Trans );
 void AddScreenPolyTextScale( u_int16_t Frame, float XPos, float YPos, float XScale, float YScale, u_int8_t Red, u_int8_t Green, u_int8_t Blue, u_int8_t Trans );
 void ShowScreenMultiples( void );

@@ -802,6 +802,7 @@ SLIDER DemoEyesSelect				= { 0, MAX_PLAYERS, 1, 0, 0, 0.0F };
 SLIDER FlagSfxSlider						= { 0, 10, 1, 10, 0, 0.0F };
 SLIDER WatchPlayerSelect				= { 0, MAX_PLAYERS+1, 1, 0, 0, 0.0F }; // which player's pov to watch
 SLIDER TextScaleSlider				= { 0, 5, 1, 1, 0, 0.0F, 0.0F, 0, false, NULL, NULL, SetTextScale };
+SLIDER CrosshairScaleSlider			= { 0, 5, 1, 0, 0, 0.0F, 0.0F, 0, false, NULL, NULL, NULL }; // 0 = follow text scale
 
 bool ShowTeamInfo;
 bool MenuFrozen					= false;
@@ -2859,17 +2860,18 @@ MENU	MENU_Visuals = {
 		{ 200, 128 + ( 0*16 ), 0, 0, 0, LT_MENU_Visuals1		/*"Select Screen Mode"		*/, 0, 0, NULL,									&MENU_SelectScreenMode,		MenuChange,			MenuItemDrawName,		NULL, 0 },
 		
 		{ 200, 128 + ( 2*16 ), 0, 0, 0, "TEXT SCALE", 0, 0,	&TextScaleSlider,	NULL,	SelectSlider,	DrawSlider, NULL, 0 },
+		{ 200, 128 + ( 3*16 ), 0, 0, 0, "CROSSHAIR SCALE", 0, 0,	&CrosshairScaleSlider,	NULL,	SelectSlider,	DrawSlider, NULL, 0 },
 
-		{ 200, 128 + ( 3*16 ), 0, 0, 0, "HUD COLOUR ", 0, 0, &HUDColour,	NULL,		SelectColourToggle,	DrawMessagesToggle,	NULL, 0 },
-		{ 200, 128 + ( 4*16 ), 0, 0, 0, "MENU COLOUR ", 0, 0, &InGameMenuColour,	NULL,		SelectColourToggle,	DrawMessagesToggle,	NULL, 0 },
-		{ 200, 128 + ( 5*16 ), 0, 0, 0, LT_MENU_InGame28	/*"normal kill messages"		*/, 0, 0, &KillMessageColour,				NULL,										SelectColourToggle,	DrawMessagesToggle,	NULL, 0 },
-		{ 200, 128 + ( 6*16 ), 0, 0, 0, LT_MENU_InGame29	/*"milestone kill messages"	*/, 0, 0,	&MilestoneMessagesColour,	NULL,										SelectColourToggle,	DrawMessagesToggle,	NULL, 0 },
-		{ 200, 128 + ( 7*16 ), 0, 0, 0, LT_MENU_InGame30	/*"system messages"		*/, 0, 0,	&SystemMessageColour,		NULL,										SelectColourToggle,	DrawMessagesToggle,	NULL, 0 },
-		{ 200, 128 + ( 8*16 ), 0, 0, 0, LT_MENU_InGame31	/*"flag/bounty messages"	*/, 0, 0,	&FlagMessageColour,				NULL,										SelectColourToggle, DrawMessagesToggle,	NULL, 0 },
-		{ 200, 128 + ( 9*16 ), 0, 0, 0, LT_MENU_InGame32	/*"player messages"			*/, 0, 0,	&PlayerMessageColour,			NULL,										SelectColourToggle,	DrawMessagesToggle,	NULL, 0 },
-		{ 200, 128 + ( 10*16 ), 0, 0, 0, LT_MENU_InGame33	/*"pickup messages"			*/, 0, 0,	&PickupMessageColour,			NULL,										SelectColourToggle,	DrawMessagesToggle,	NULL, 0 },
-		{ 200, 128 + ( 11*16 ), 0, 0, 0, LT_MENU_InGame34	/*"taunt messages"			*/, 0, 0,	&TauntMessageColour,			NULL,										SelectColourToggle,	DrawMessagesToggle,	NULL, 0 },
-		{ 200, 128 + ( 12*16 ), 0, 0, 0, LT_MENU_InGame35	/*"your messages"			*/, 0, 0,	&MyMessageColour,				NULL,										SelectColourToggle,	DrawMessagesToggle,	NULL, 0 },
+		{ 200, 128 + ( 4*16 ), 0, 0, 0, "HUD COLOUR ", 0, 0, &HUDColour,	NULL,		SelectColourToggle,	DrawMessagesToggle,	NULL, 0 },
+		{ 200, 128 + ( 5*16 ), 0, 0, 0, "MENU COLOUR ", 0, 0, &InGameMenuColour,	NULL,		SelectColourToggle,	DrawMessagesToggle,	NULL, 0 },
+		{ 200, 128 + ( 6*16 ), 0, 0, 0, LT_MENU_InGame28	/*"normal kill messages"		*/, 0, 0, &KillMessageColour,				NULL,										SelectColourToggle,	DrawMessagesToggle,	NULL, 0 },
+		{ 200, 128 + ( 7*16 ), 0, 0, 0, LT_MENU_InGame29	/*"milestone kill messages"	*/, 0, 0,	&MilestoneMessagesColour,	NULL,										SelectColourToggle,	DrawMessagesToggle,	NULL, 0 },
+		{ 200, 128 + ( 8*16 ), 0, 0, 0, LT_MENU_InGame30	/*"system messages"		*/, 0, 0,	&SystemMessageColour,		NULL,										SelectColourToggle,	DrawMessagesToggle,	NULL, 0 },
+		{ 200, 128 + ( 9*16 ), 0, 0, 0, LT_MENU_InGame31	/*"flag/bounty messages"	*/, 0, 0,	&FlagMessageColour,				NULL,										SelectColourToggle, DrawMessagesToggle,	NULL, 0 },
+		{ 200, 128 + ( 10*16 ), 0, 0, 0, LT_MENU_InGame32	/*"player messages"			*/, 0, 0,	&PlayerMessageColour,			NULL,										SelectColourToggle,	DrawMessagesToggle,	NULL, 0 },
+		{ 200, 128 + ( 11*16 ), 0, 0, 0, LT_MENU_InGame33	/*"pickup messages"			*/, 0, 0,	&PickupMessageColour,			NULL,										SelectColourToggle,	DrawMessagesToggle,	NULL, 0 },
+		{ 200, 128 + ( 12*16 ), 0, 0, 0, LT_MENU_InGame34	/*"taunt messages"			*/, 0, 0,	&TauntMessageColour,			NULL,										SelectColourToggle,	DrawMessagesToggle,	NULL, 0 },
+		{ 200, 128 + ( 13*16 ), 0, 0, 0, LT_MENU_InGame35	/*"your messages"			*/, 0, 0,	&MyMessageColour,				NULL,										SelectColourToggle,	DrawMessagesToggle,	NULL, 0 },
 		{ -1 , -1, 0, 0, 0, "" , 0, 0, NULL, NULL , NULL , NULL, NULL, 0 }
 	}
 };
@@ -9324,6 +9326,9 @@ void GetGamePrefs( void )
 		CLAMP(TextScaleSlider.value, TextScaleSlider.max);
 		SetTextScale( &TextScaleSlider );
 
+		CrosshairScaleSlider.value = config_get_int( "CrosshairScale", 0 );
+		CLAMP( CrosshairScaleSlider.value, CrosshairScaleSlider.max );
+
     SfxSlider.value                  = config_get_int( "SfxVolume",					(int)(SfxSlider.max				* 1.00F) );
     FlagSfxSlider.value              = config_get_int( "FlagSfxVolume",				(int)(FlagSfxSlider.max			* 0.80F) );
 	BikerSpeechSlider.value          = config_get_int( "BikerSpeechVolume",			(int)(BikerSpeechSlider.max		* 0.60F) );
@@ -9484,6 +9489,7 @@ void SetGamePrefs( void )
 	config_set_int( "Gamma",			GammaSlider.value );
 	config_set_int( "water",			WaterDetailSlider.value );
 	config_set_int( "TextScale", TextScaleSlider.value );
+	config_set_int( "CrosshairScale", CrosshairScaleSlider.value );
 	config_set_int( "TimeLimit",			MyTimeLimit.value );
 	config_set_int( "HUDColour", HUDColour );
 	config_set_int( "InGameMenuColour", InGameMenuColour );
