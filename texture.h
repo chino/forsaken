@@ -13,5 +13,6 @@ typedef struct {
 
 int load_image( texture_image_t * image, int mipmap ); //, float gamma );
 void destroy_image( texture_image_t * image );
+int save_image_rgb( const char * path, int w, int h, unsigned char * rgb ); // top row first
 
 #endif
