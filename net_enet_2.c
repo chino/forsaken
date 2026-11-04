@@ -772,7 +772,7 @@ static void new_connection( ENetPeer * peer )
 
 static void lost_connection( ENetPeer * peer, enet_uint32 data )
 {
-	char* reason = &data;
+	char* reason = (char*) &data;
 	network_peer_data_t * peer_data = peer->data;
 
 	// print debug info
