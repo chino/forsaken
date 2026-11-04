@@ -1745,8 +1745,9 @@ MENU	MENU_NEW_VROptions = {
 		{ 20,  88, 150,  88, 0,				"Ship bob",				FONT_Small, TEXTFLAG_CentreY,						&vr_ship_bob,		NULL,	SelectFlatMenuToggle,	DrawFlatMenuToggle,	NULL, 0 },
 		{ 20, 104, 150, 104, 0,				"HUD on the cockpit",	FONT_Small, TEXTFLAG_CentreY,						&vr_hud_cockpit,	NULL,	SelectFlatMenuToggle,	DrawFlatMenuToggle,	NULL, 0 },
 		{ 20, 120, 150, 120, 0,				"Vibration",			FONT_Small, TEXTFLAG_CentreY,						&vr_vibration,		NULL,	SelectFlatMenuToggle,	DrawFlatMenuToggle,	NULL, 0 },
-		{ 20, 136, 200, 136, 0,				"Controls",				FONT_Small, TEXTFLAG_CentreY,						NULL,				&MENU_NEW_Controls,	MenuChange,	DrawFlatMenuItem,	NULL, 0 },
-		{ 20, 150, 100, 150, 0,				"Back",					FONT_Small, TEXTFLAG_CentreY,						NULL,				NULL,	MenuItemBack,			DrawFlatMenuItem,	NULL, 0 },
+		{ 20, 136, 150, 136, 0,				"Steady desktop view",	FONT_Small, TEXTFLAG_CentreY,						&vr_steady_mirror,	NULL,	SelectFlatMenuToggle,	DrawFlatMenuToggle,	NULL, 0 },
+		{ 20, 150, 200, 150, 0,				"Controls",				FONT_Small, TEXTFLAG_CentreY,						NULL,				&MENU_NEW_Controls,	MenuChange,	DrawFlatMenuItem,	NULL, 0 },
+		{ 20, 164, 100, 164, 0,				"Back",					FONT_Small, TEXTFLAG_CentreY,						NULL,				NULL,	MenuItemBack,			DrawFlatMenuItem,	NULL, 0 },
 		{ -1, -1, 0, 0, 0, "", 0, 0,  NULL, NULL, NULL, NULL, NULL, 0 }
 	}
 };
@@ -1760,7 +1761,8 @@ MENU	MENU_VROptions = {
 		OLDMENUITEM( 200, 176, "Ship Bob",				&vr_ship_bob,		NULL,	SelectToggle,	DrawToggle ),
 		OLDMENUITEM( 200, 192, "HUD on the Cockpit",	&vr_hud_cockpit,	NULL,	SelectToggle,	DrawToggle ),
 		OLDMENUITEM( 200, 208, "Vibration",				&vr_vibration,		NULL,	SelectToggle,	DrawToggle ),
-		OLDMENUITEM( 200, 224, "Controls",				NULL,				&MENU_Keyboard,	MenuChange,	MenuItemDrawName ),
+		OLDMENUITEM( 200, 224, "Steady Desktop View",	&vr_steady_mirror,	NULL,	SelectToggle,	DrawToggle ),
+		OLDMENUITEM( 200, 240, "Controls",				NULL,				&MENU_Keyboard,	MenuChange,	MenuItemDrawName ),
 		{ -1 , -1, 0, 0, 0, "" , 0, 0, NULL, NULL , NULL , NULL, NULL, 0 }
 	}
 };
@@ -9418,6 +9420,7 @@ void GetGamePrefs( void )
 	vr_ship_bob						 = config_get_bool( "VRShipBob",				true );
 	vr_hud_cockpit					 = config_get_bool( "VRHudCockpit",				true );
 	vr_vibration					 = config_get_bool( "VRVibration",				true );
+	vr_steady_mirror				 = config_get_bool( "VRSteadyMirror",			true );
 #endif
 
 	memset( MyPickupValid, 0, sizeof(MyPickupValid) );
@@ -9615,6 +9618,7 @@ void SetGamePrefs( void )
 		config_set_bool( "VRShipBob",		vr_ship_bob );
 		config_set_bool( "VRHudCockpit",	vr_hud_cockpit );
 		config_set_bool( "VRVibration",		vr_vibration );
+		config_set_bool( "VRSteadyMirror",	vr_steady_mirror );
 	}
 #endif
 

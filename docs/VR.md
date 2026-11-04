@@ -62,6 +62,7 @@ Options > Visuals (both only shown in the headset), which also has **Recenter**:
 | `VRAutoLevel = true` | false | Ease the ship back level when you are not rolling, even if the pilot's own autoleveling is off. |
 | `VRShipBob = false`  | true  | Stop the gentle drift of your ship at rest, which moves the whole view in a headset. |
 | `VRHudCockpit = false` | true | Keep the HUD in front of your eyes wherever you look instead of fixed in the cockpit. |
+| `VRSteadyMirror = false` | true | Mirror the left eye as it is instead of a steady, level cut-out of it that follows your turns but not every small head movement. |
 | `VRVibration = false`  | true | Stop the controllers buzzing when you fire (primary in the right hand, secondary in the left) and when you are hit (both, harder for a bigger hit). |
 
 ## What you get
@@ -75,7 +76,9 @@ Options > Visuals (both only shown in the headset), which also has **Recenter**:
   the HUD floats over the world.
 - Title screens and loading screens on the same panel, fixed in the room where
   it appeared, with the 3D title room behind it in stereo.
-- The desktop window mirrors the left eye with the HUD laid over it.
+- The desktop window mirrors the left eye with the HUD laid over it, as a
+  steady, level cut-out that follows your turns but not every small movement
+  of your head, which is easier to watch.
 - **Recentre** by holding the menu button for about half a second.
 
 ## Controllers
