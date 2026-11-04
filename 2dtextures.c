@@ -333,8 +333,23 @@ FRAME_INFO * Load_Off_File( int8_t * Filename, bool Scale, int LoadTPages, int16
 
 		for( Count = 0; Count < Num_Boxes; Count++ )
 		{
+			float du, dv;
+
 			if (LoadTPages & LOAD_TPAGES)
 				Box_Info[ Count ].tpage = Name_Index[ Box_Info[ Count ].tpage ];	// Update TPages
+
+			// pull the uv's in by half a texel of the original texture page so
+			// filtering and mipmaps don't pick up the neighbouring frames,
+			// small boxes are font glyphs drawn ~1:1 that the inset would distort
+			if( Box_Info[ Count ].xsize >= 16 && Box_Info[ Count ].ysize >= 16 )
+			{
+				du = 0.5F * ( Box_Info[ Count ].u2 - Box_Info[ Count ].u1 ) / Box_Info[ Count ].xsize;
+				dv = 0.5F * ( Box_Info[ Count ].v2 - Box_Info[ Count ].v1 ) / Box_Info[ Count ].ysize;
+				Box_Info[ Count ].u1 += du;
+				Box_Info[ Count ].u2 -= du;
+				Box_Info[ Count ].v1 += dv;
+				Box_Info[ Count ].v2 -= dv;
+			}
 		}
 
 		Frm_Info->Num_Frames = Num_Frames;
