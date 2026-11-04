@@ -1338,6 +1338,9 @@ void network_event_player_left( network_player_t * player )
 
 				Ships[i].enable = 0;
 
+				// put the weapons they were holding back into the level
+				RegenRemotePickupsHeld( (BYTE) i );
+
 				if ( GameStatus[i] == STATUS_StartingMultiplayer )
 					GameStatus[i] = STATUS_Null;	// ensure slot is freed up if player has quit from titles
 
@@ -2539,6 +2542,7 @@ void EvaluateMessage( network_player_t * from, DWORD len , BYTE * MsgPnt )
 	 					   lpDropPickup->PickupInfo.IDCount, lpDropPickup->PickupInfo.RegenSlot,
 	 					   lpDropPickup->PickupInfo.Sparkle, lpDropPickup->PickupInfo.LifeCount,
 						   lpDropPickup->PickupInfo.TriggerMod );
+		RemotePlayerDroppedPickup( lpDropPickup->WhoIAm, lpDropPickup->PickupInfo.Type, lpDropPickup->PickupInfo.RegenSlot );
 		return;
 
 
@@ -2573,6 +2577,7 @@ void EvaluateMessage( network_player_t * from, DWORD len , BYTE * MsgPnt )
 	 					   TempPickup.IDCount, TempPickup.RegenSlot,
 	 					   TempPickup.Sparkle, TempPickup.LifeCount,
 						   TempPickup.TriggerMod );
+		RemotePlayerDroppedPickup( lpVeryShortDropPickup->WhoIAm, TempPickup.Type, TempPickup.RegenSlot );
 		return;
 
 
@@ -2587,6 +2592,9 @@ void EvaluateMessage( network_player_t * from, DWORD len , BYTE * MsgPnt )
 		if( lpKillPickup->KillPickupInfo.Owner != (u_int16_t) -1 ) DebugPrintf( "PACKET OWNER '%s' : Kill Pickup Owner '%s', ID %d\n", &Names[ lpKillPickup->WhoIAm ][ 0 ], &Names[ lpKillPickup->KillPickupInfo.Owner ][ 0 ], lpKillPickup->KillPickupInfo.IDCount );
 		else DebugPrintf( "PACKET OWNER '%s' : Kill Pickup No Owner, ID %d\n", &Names[ lpKillPickup->WhoIAm ][ 0 ], lpKillPickup->KillPickupInfo.IDCount );
 #endif
+		// remember what other players are holding ( see RegenRemotePickupsHeld )
+		if( lpKillPickup->KillPickupInfo.Style == PICKUPKILL_Immediate )
+			RemotePlayerCollectedPickup( lpKillPickup->WhoIAm, lpKillPickup->KillPickupInfo.Owner, lpKillPickup->KillPickupInfo.IDCount );
 		KillPickup( lpKillPickup->KillPickupInfo.Owner, lpKillPickup->KillPickupInfo.IDCount, lpKillPickup->KillPickupInfo.Style );
 		return;
 

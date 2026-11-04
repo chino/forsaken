@@ -1225,6 +1225,104 @@ void ClearPickupsGot( void )
 	NumOrbs				= 0;
 	NumPowerPods		= 0;
 
+	ClearRemotePickupsHeld( MAX_PLAYERS );
+}
+
+/*===================================================================
+	Pickups held by other players
+
+	Every player manages the pickup list locally: when someone collects
+	a pickup everybody removes it, and it only comes back when that
+	player drops it again (death, or throwing it out). A player that
+	leaves or lags out never drops anything, so their weapons vanished
+	from the level for the rest of the game.
+
+	Track the persistent pickups (primaries, power pods, orbitals) that
+	other players collect and throw out, and when one of them leaves let
+	the host put what they were holding back into the regeneration
+	queue (RegeneratePickups() then creates and broadcasts them).
+===================================================================*/
+static int16_t RemotePickupsHeld[ MAX_PLAYERS ][ MAXPICKUPTYPES ];
+
+static bool RemotePickupTracked( u_int16_t Type )
+{
+	switch( Type )
+	{
+		case PICKUP_Trojax:
+		case PICKUP_Pyrolite:
+		case PICKUP_Transpulse:
+		case PICKUP_SussGun:
+		case PICKUP_Laser:
+		case PICKUP_PowerPod:
+		case PICKUP_Orb:
+			return true;
+	}
+	return false;
+}
+
+/* Player == MAX_PLAYERS clears every player */
+void ClearRemotePickupsHeld( BYTE Player )
+{
+	if( Player >= MAX_PLAYERS )
+		memset( RemotePickupsHeld, 0, sizeof( RemotePickupsHeld ) );
+	else
+		memset( RemotePickupsHeld[ Player ], 0, sizeof( RemotePickupsHeld[ Player ] ) );
+}
+
+/* call before the pickup is killed, we need its type */
+void RemotePlayerCollectedPickup( BYTE Player, u_int16_t Owner, u_int16_t ID )
+{
+	u_int16_t i;
+
+	if( Player >= MAX_PLAYERS )
+		return;
+
+	for( i = FirstPickupUsed; i != (u_int16_t) -1; i = Pickups[ i ].Prev )
+	{
+		if( ( Pickups[ i ].Owner != Owner ) || ( Pickups[ i ].ID != ID ) )
+			continue;
+		if( RemotePickupTracked( Pickups[ i ].Type ) )
+		{
+			RemotePickupsHeld[ Player ][ Pickups[ i ].Type ]++;
+			// you can only hold one of each primary
+			if( ( Pickups[ i ].Type >= PICKUP_Trojax ) && ( Pickups[ i ].Type <= PICKUP_Laser ) )
+				RemotePickupsHeld[ Player ][ Pickups[ i ].Type ] = 1;
+		}
+		return;
+	}
+}
+
+/* a pickup thrown out of a player's ship ( not one generated at a regen slot ) */
+void RemotePlayerDroppedPickup( BYTE Player, u_int16_t Type, int16_t RegenSlot )
+{
+	if( ( Player >= MAX_PLAYERS ) || ( RegenSlot != -1 ) || ( Type >= MAXPICKUPTYPES ) )
+		return;
+	if( RemotePickupsHeld[ Player ][ Type ] > 0 )
+		RemotePickupsHeld[ Player ][ Type ]--;
+}
+
+/* player has left the game */
+void RegenRemotePickupsHeld( BYTE Player )
+{
+	u_int16_t Type;
+	int16_t Count;
+
+	if( Player >= MAX_PLAYERS )
+		return;
+
+	if( IsHost )
+	{
+		for( Type = 0; Type < MAXPICKUPTYPES; Type++ )
+		{
+			for( Count = 0; Count < RemotePickupsHeld[ Player ][ Type ]; Count++ )
+			{
+				DebugPrintf( "pickups: regenerating '%s' held by departed player %d\n", Messages[ Type ], Player );
+				AddPickupToRegen( Type );
+			}
+		}
+	}
+
+	ClearRemotePickupsHeld( Player );
 }
 
 /*===================================================================
@@ -3380,6 +3478,9 @@ bool LoadPickupsPositions( void )
 
   /* wipes out all pickups, so we can load new ones */
   KillAllPickups();
+
+  /* nobody is holding anything from the new level yet */
+  ClearRemotePickupsHeld( MAX_PLAYERS );
 
 #if 0
   DebugPrintf( "pickups: RandomSeeds %d, %d : NumPrimaryPickups %d\n", CopyOfSeed1, CopyOfSeed2, NumPrimaryPickups );
