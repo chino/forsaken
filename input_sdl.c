@@ -236,7 +236,7 @@ void app_keyboard( SDL_KeyboardEvent * key )
 		else if( key->keysym.sym == SDLK_RSHIFT || key->keysym.sym == SDLK_LSHIFT )
 		{
 #if SDL_VERSION_ATLEAST(2,0,0)
-				u_int8_t *keystate = SDL_GetKeyboardState(NULL);
+				const u_int8_t *keystate = SDL_GetKeyboardState(NULL);
 				if ( keystate[SDL_SCANCODE_F12] )
 #else
 				u_int8_t *keystate = SDL_GetKeyState(NULL);
@@ -744,7 +744,7 @@ bool handle_events( void )
 // now it's an x/y axis since it supports mouse wheel balls
 #if SDL_VERSION_ATLEAST(2,0,0)
 		case SDL_MOUSEWHEEL:
-			app_mouse_wheel( &_event );
+			app_mouse_wheel( &_event.wheel );
 			break;
 #endif
 
@@ -754,7 +754,7 @@ bool handle_events( void )
 // TODO - we should call something like app_window
 //        which then delegates to app_active in correct case
 		case SDL_WINDOWEVENT:
-			app_active( &_event );
+			app_active( &_event.window );
 			break;
 #else
 		case SDL_ACTIVEEVENT:
@@ -774,40 +774,7 @@ bool handle_events( void )
 			break;
 #endif
 
-// the newer sdl now uses a union instead of sub structures
-#if SDL_VERSION_ATLEAST(2,0,0)
-		case SDL_KEYDOWN:
-		case SDL_KEYUP:
-			app_keyboard( &_event );
-			break;
-
-		case SDL_MOUSEBUTTONDOWN:
-		case SDL_MOUSEBUTTONUP:
-			app_mouse_button( &_event );
-			break;
-
-		case SDL_MOUSEMOTION:
-			app_mouse_motion( &_event );
-			break;
-
-		case SDL_JOYAXISMOTION:
-			app_joy_axis( &_event );
-			break;
-
-		case SDL_JOYBALLMOTION:
-			app_joy_ball( &_event );
-			break;
-
-		case SDL_JOYBUTTONDOWN:
-		case SDL_JOYBUTTONUP:
-			app_joy_button( &_event );
-			break;
-
-		case SDL_JOYHATMOTION:
-			app_joy_hat( &_event );
-			break;
-
-#else
+// sdl 1.2 and sdl2 name these union members the same way
 		case SDL_KEYDOWN:
 		case SDL_KEYUP:
 			app_keyboard( &_event.key );
