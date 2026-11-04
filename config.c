@@ -238,6 +238,7 @@ read_keydef( FILE *f, USERKEY *k, char *last_token )
 	VIRTUALKEYMAP *vk;
 	int j;
 	int keys_defined;
+	int tokens;
 
 	char line[256];
 	char * ptr = line;
@@ -246,25 +247,37 @@ read_keydef( FILE *f, USERKEY *k, char *last_token )
 	init_key_map();
 
 	keys_defined = 0;
+	tokens = 0;
+	save_key = *k; // save old definition in case of failure
 	for ( j = 0; j < MAX_KEYS_PER_CONTROL; j++ )
-	{
-		save_key.key[ j ] = k->key[ j ]; // save old definition in case of failure
 		k->key[ j ] = 0; // clear any existing key definitions
-	}
 	while ( ptr && sscanf( ptr, " %80s", last_token ) == 1 )
 	{
 		int i;
+
+		tokens++;
+		ptr = (strstr(ptr,last_token)+strlen(last_token));
+
+		// look the name up; when nothing matches the loop runs off the end,
+		// so test for a match rather than vk (which would be left on the
+		// last entry, "mouse_254", binding every unknown name to it)
+		vk = NULL;
 		for ( i = 0; i < KEY_MAP_LAST; i++ )
 		{
-			vk = &vkey_map[i];
-			if(!vk->keycode || !vk->keyword)
+			if(!vkey_map[i].keycode || !vkey_map[i].keyword)
 				continue;
-			if(strcasecmp( last_token, vk->keyword ) == 0)
+			if(strcasecmp( last_token, vkey_map[i].keyword ) == 0)
+			{
+				vk = &vkey_map[i];
 				break;
+			}
 		}
 
-		if ( ! vk->keyword )
-			break;
+		if ( !vk )
+		{
+			DebugPrintf( "read_keydef: ignoring unknown key name '%s'\n", last_token );
+			continue;
+		}
 
 		for ( j = 0; j < MAX_KEYS_PER_CONTROL; j++ )
 		{
@@ -275,8 +288,6 @@ read_keydef( FILE *f, USERKEY *k, char *last_token )
 				break;
 			}
 		}
-
-		ptr = (strstr(ptr,last_token)+strlen(last_token));
 	}
 	last_token[0] = 0;
 
@@ -284,10 +295,15 @@ read_keydef( FILE *f, USERKEY *k, char *last_token )
 	{
 		k->keys = keys_defined;
 	}
+	else if ( !tokens )
+	{
+		// an empty line: the control was deliberately left unbound
+		k->keys = 0;
+	}
 	else
 	{
-		for ( j = 0; j < MAX_KEYS_PER_CONTROL; j++ )
-			k->key[ j ] = save_key.key[ j ];
+		// nothing usable on the line: keep the previous (default) binding
+		*k = save_key;
 	}
 
 	return keys_defined;
@@ -1264,17 +1280,11 @@ read_config( USERCONFIG *u, char *cfg_name )
 
 	}
 
-	// clear the memory in the passed in user config
-	memset( u, 0, sizeof( *u ) );
-
-	// since all config settings are now zero, any new additions to config structure
-	// must be initialised here, in order to be backwardly compatible with old config
-	// files...
-	u->invert_turn = 0;	
-	u->invert_pitch = 0;
-	u->mouse_x_sensitivity = 0.6F;
-	u->mouse_y_sensitivity = 0.6F;
-	u->send_msg.key[ 0 ] = SDLK_RETURN;
+	// start from the default config, so anything the file does not set
+	// (a control missing from an old or hand edited file, or one whose key
+	// names this build does not know) keeps its default instead of becoming
+	// a dead key
+	*u = default_config;
 
 	// reset all joystick settings
 	ReInitJoysticks();
@@ -1492,28 +1502,22 @@ write_key_name( VirtualKeycode key )
 }
 
 
+// the control is written even when it has no keyboard or mouse keys, so that
+// a deliberately unbound control stays unbound when read back instead of
+// picking up its default again (read_config starts from default_config)
 static void
 write_keydef( FILE *f, char *ctl_name, USERKEY *keydef )
 {
 	int k;
 
+	fprintf( f, "%s\t", ctl_name );
 	for ( k = 0; k < keydef->keys; k++ )
 	{
-		if ( write_key_name( keydef->key[ k ] ) )
-			break;
+		const char *name = write_key_name( keydef->key[ k ] );
+		if ( name )
+			fprintf( f, "\t%s", name );
 	}
-
-	if ( k < keydef->keys )
-	{
-		fprintf( f, "%s\t", ctl_name );
-		for ( k = 0; k < keydef->keys; k++ )
-		{
-			const char *name = write_key_name( keydef->key[ k ] );
-			if ( name )
-				fprintf( f, "\t%s", name );
-		}
-		fprintf( f, "\n" );
-	}
+	fprintf( f, "\n" );
 }
 
 
@@ -1523,27 +1527,19 @@ write_keydef_indexed( FILE *f, char *ctl_name, USERKEY *keydef, int index )
 	int k;
 
 	keydef += index;
+
+	// the first number after SELECT1 represents the primary weapon in enum table
+	fprintf( f, "%s\t\t%d", ctl_name, index + 1 );
+
 	for ( k = 0; k < keydef->keys; k++ )
 	{
-		if ( write_key_name( keydef->key[ k ] ) )
-			break;
+		const char *name = write_key_name( keydef->key[ k ] );
+
+		// each string after "SELECT1 n" represents the keys associated
+		if ( name )
+			fprintf( f, "\t%s", name );
 	}
-
-	if ( k < keydef->keys )
-	{
-		// the first number after SELECT1 represents the primary weapon in enum table
-		fprintf( f, "%s\t\t%d", ctl_name, index + 1 );
-
-		for ( k = 0; k < keydef->keys; k++ )
-		{
-			const char *name = write_key_name( keydef->key[ k ] );
-
-			// each string after "SELECT1 n" represents the keys associated
-			if ( name )
-				fprintf( f, "\t%s", name );
-		}
-		fprintf( f, "\n" );
-	}
+	fprintf( f, "\n" );
 }
 
 
