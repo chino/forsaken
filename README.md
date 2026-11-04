@@ -6,5 +6,5 @@ Check out the [Wiki](https://github.com/ForsakenX/forsaken/wiki) for more inform
 
 ## Virtual reality
 
-Builds made with `make VR=1` can render to a VR headset through OpenXR when
-started with `-vr`. See [docs/VR.md](docs/VR.md).
+Builds made where the OpenXR headers are installed can render to a VR headset
+through OpenXR when started with `-vr`. See [docs/VR.md](docs/VR.md).

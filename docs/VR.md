@@ -2,9 +2,10 @@
 
 Forsaken can render to a VR headset through [OpenXR](https://www.khronos.org/openxr/),
 so it works with any OpenXR runtime: SteamVR, Monado, WiVRn/ALVR, Meta's runtime,
-Virtual Desktop and so on. Support is optional at build time and at run time:
-a normal build contains none of it, and a VR build behaves exactly like a normal
-one unless it is started with `-vr`.
+Virtual Desktop and so on. It is built in whenever the OpenXR headers are
+available, and the OpenXR loader is only opened at run time when VR is asked
+for, so the same binary runs fine on machines without OpenXR and behaves
+exactly like a desktop build unless it is started with `-vr`.
 
 The OpenXR code is based on the VR port in
 [Forsaken VR](https://github.com/GameOrDie007/Forsaken-VR), a fork of ForsakenX
@@ -13,21 +14,18 @@ controller, a cockpit fixed HUD, haptics, comfort options, standalone Quest buil
 
 ## Building
 
-You need the OpenXR loader development files, plus the usual dependencies.
+Only the OpenXR headers are needed at build time, plus the usual dependencies.
 On Debian/Ubuntu:
 
     apt-get install libopenxr-dev libx11-dev
 
-Then add `VR=1` to any of the usual build configurations:
-
-    make clean
-    make VR=1                  # SDL 1.2, OpenGL 1
-    make VR=1 SDL=2            # SDL 2,   OpenGL 1
-    make VR=1 SDL=2 GL=3       # SDL 2,   OpenGL 3 (what Forsaken VR uses)
-
-`VR=1` adds `-DVR_OPENXR` and the `openxr` (and on Linux `x11`) pkg-config
-packages. Without it, `vr_openxr.c` is not compiled and every hook is
+When `pkg-config openxr` finds them, every build configuration includes VR
+(`make check` shows `VR = 1`); the binary is not linked against the loader.
+`make VR=0` leaves it out: `vr_openxr.c` is not compiled and every hook is
 compiled out.
+
+At run time `-vr` opens `libopenxr_loader.so.1` (`openxr_loader.dll` on
+Windows), which comes with the OpenXR runtime or the `libopenxr1` package.
 
 Platform notes:
 
@@ -43,7 +41,7 @@ Platform notes:
     ./projectx -vr
 
 Start your OpenXR runtime (SteamVR, `monado-service`, ...) and connect the
-headset first. If there is no runtime, no headset, or anything else goes
+headset first. If there is no OpenXR loader, no runtime, no headset, or anything else goes
 wrong, the log says why in a line starting `openxr: VR disabled, rendering to
 the desktop instead:` and the game simply runs on the desktop as usual.
 
@@ -51,7 +49,7 @@ Options:
 
 | Option         | Default | |
 |----------------|---------|-|
-| `-vr`          | off     | Render to the headset. |
+| `-vr`          | off     | Render to the headset. `VR = true` in the config file does the same. |
 | `-vrscale:N`   | 30      | World units per metre. Bigger makes the world feel smaller. |
 | `-vrres:N`     | 100     | Eye resolution as a percentage of what the runtime recommends (10 to 400). |
 

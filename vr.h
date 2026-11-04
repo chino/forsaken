@@ -1,5 +1,5 @@
 /*
-  OpenXR headset support, built with `make VR=1` and enabled with -vr.
+  OpenXR headset support, built in when the OpenXR headers are found and enabled with -vr.
   Falls back to the desktop when no runtime or headset is available.
   See docs/VR.md. Based on Forsaken VR (GameOrDie007/Forsaken-VR).
 */
@@ -22,7 +22,7 @@ typedef struct {
 	float tan_left, tan_right, tan_up, tan_down;
 } vr_view_t;
 
-// -vr was passed
+// -vr was passed or VR = true is in the config
 extern bool vr_requested;
 
 // world units per metre: how big the world feels. -vrscale:N

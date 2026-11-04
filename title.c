@@ -9328,6 +9328,9 @@ void GetGamePrefs( void )
     MyUseShortPackets                = config_get_bool( "UseShortPackets",			true );
     ShowTeamInfo                     = config_get_bool( "ShowTeamInfo",				true );
 	render_info.fullscreen			 = config_get_bool( "FullScreen",				false );
+#ifdef VR_OPENXR
+	vr_requested					 = config_get_bool( "VR",						false );
+#endif
 
 	memset( MyPickupValid, 0, sizeof(MyPickupValid) );
 

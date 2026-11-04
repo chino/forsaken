@@ -4,7 +4,8 @@
   Based on the OpenXR port in Forsaken VR (GameOrDie007/Forsaken-VR),
   source/vr_openxr.c, a fork of ForsakenX under the same license.
 
-  Only compiled in builds made with `make VR=1`.
+  Only compiled in builds made with VR (see the Makefile). The OpenXR
+  loader is opened at run time, so it is only needed with -vr.
 */
 
 #ifdef VR_OPENXR
@@ -24,7 +25,11 @@
   #include <GL/glx.h>
   #define XR_USE_PLATFORM_XLIB
 #endif
+#if !defined( WIN32 ) && !defined( _WIN32 )
+  #include <dlfcn.h>
+#endif
 #define XR_USE_GRAPHICS_API_OPENGL
+#define XR_NO_PROTOTYPES
 #include <openxr/openxr.h>
 #include <openxr/openxr_platform.h>
 
@@ -257,6 +262,71 @@ void vr_unscale_rect( int * x, int * y, int * w, int * h, int * sh )
 }
 
 /*===================================================================
+  OpenXR entry points, from the loader opened at run time so a VR
+  build still runs where OpenXR is not installed
+===================================================================*/
+
+#define XR_GLOBAL_FUNCS \
+	X( xrEnumerateInstanceExtensionProperties ) X( xrCreateInstance )
+
+#define XR_INSTANCE_FUNCS \
+	X( xrDestroyInstance ) X( xrResultToString ) X( xrGetInstanceProperties ) \
+	X( xrGetSystem ) X( xrGetSystemProperties ) X( xrEnumerateViewConfigurationViews ) \
+	X( xrCreateSession ) X( xrDestroySession ) X( xrBeginSession ) X( xrEndSession ) \
+	X( xrCreateReferenceSpace ) X( xrDestroySpace ) X( xrLocateSpace ) X( xrLocateViews ) \
+	X( xrCreateSwapchain ) X( xrDestroySwapchain ) X( xrEnumerateSwapchainFormats ) \
+	X( xrEnumerateSwapchainImages ) X( xrAcquireSwapchainImage ) \
+	X( xrWaitSwapchainImage ) X( xrReleaseSwapchainImage ) \
+	X( xrWaitFrame ) X( xrBeginFrame ) X( xrEndFrame ) X( xrPollEvent ) \
+	X( xrStringToPath ) X( xrCreateActionSet ) X( xrDestroyActionSet ) X( xrCreateAction ) \
+	X( xrSuggestInteractionProfileBindings ) X( xrAttachSessionActionSets ) \
+	X( xrSyncActions ) X( xrGetActionStateFloat ) X( xrGetActionStateBoolean ) \
+	X( xrGetActionStateVector2f )
+
+static PFN_xrGetInstanceProcAddr xrGetInstanceProcAddr;
+#define X( f ) static PFN_##f f;
+XR_GLOBAL_FUNCS
+XR_INSTANCE_FUNCS
+#undef X
+
+#define X( f ) \
+	if( XR_FAILED( xrGetInstanceProcAddr( instance, #f, (PFN_xrVoidFunction *) &f ) ) || !f ) \
+	{ \
+		Msg( "openxr: the loader lacks %s\n", #f ); \
+		return false; \
+	}
+
+static bool load_xr( XrInstance instance )
+{
+#if defined( WIN32 ) || defined( _WIN32 )
+	#define XR_LOADER "openxr_loader.dll"
+	static HMODULE lib = NULL;
+	if( !lib && ( lib = LoadLibraryA( XR_LOADER ) ) )
+		xrGetInstanceProcAddr = (PFN_xrGetInstanceProcAddr) GetProcAddress( lib, "xrGetInstanceProcAddr" );
+#else
+	#define XR_LOADER "libopenxr_loader.so.1"
+	static void * lib = NULL;
+	if( !lib && ( lib = dlopen( XR_LOADER, RTLD_NOW ) ) )
+		*(void **) &xrGetInstanceProcAddr = dlsym( lib, "xrGetInstanceProcAddr" );
+#endif
+	if( !xrGetInstanceProcAddr )
+	{
+		Msg( "openxr: could not load the OpenXR loader (%s); is OpenXR installed?\n", XR_LOADER );
+		return false;
+	}
+	if( instance == XR_NULL_HANDLE )
+	{
+		XR_GLOBAL_FUNCS
+	}
+	else
+	{
+		XR_INSTANCE_FUNCS
+	}
+	return true;
+}
+#undef X
+
+/*===================================================================
   OpenXR state
 ===================================================================*/
 
@@ -299,7 +369,7 @@ static bool            want_recenter = true;
 static const char * xr_str( XrResult r )
 {
 	static char buf[ XR_MAX_RESULT_STRING_SIZE ];
-	if( xr_instance != XR_NULL_HANDLE && XR_SUCCEEDED( xrResultToString( xr_instance, r, buf ) ) )
+	if( xr_instance != XR_NULL_HANDLE && xrResultToString && XR_SUCCEEDED( xrResultToString( xr_instance, r, buf ) ) )
 		return buf;
 	switch( r )
 	{
@@ -619,6 +689,8 @@ static bool create_instance( void )
 	bool has_gl = false;
 	XrResult r;
 
+	if( !load_xr( XR_NULL_HANDLE ) )
+		return false;
 	r = xrEnumerateInstanceExtensionProperties( NULL, 0, &n, NULL );
 	if( XR_FAILED( r ) )
 	{
@@ -656,6 +728,8 @@ static bool create_instance( void )
 		Msg( "openxr: xrCreateInstance failed: %s\n", xr_str( r ) );
 		return false;
 	}
+	if( !load_xr( xr_instance ) )
+		return false;
 
 	if( XR_SUCCEEDED( xrGetInstanceProperties( xr_instance, &ip ) ) )
 		DebugPrintf( "openxr: runtime '%s' %u.%u.%u\n", ip.runtimeName,
@@ -985,7 +1059,7 @@ void vr_shutdown( void )
 	if( xr_session != XR_NULL_HANDLE )
 		xrDestroySession( xr_session );
 	xr_session = XR_NULL_HANDLE;
-	if( xr_instance != XR_NULL_HANDLE )
+	if( xr_instance != XR_NULL_HANDLE && xrDestroyInstance )
 		xrDestroyInstance( xr_instance );
 	xr_instance = XR_NULL_HANDLE;
 	xr_system = XR_NULL_SYSTEM_ID;

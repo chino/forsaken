@@ -147,16 +147,18 @@ ifeq ($(INPUT_DISABLED),1)
   CFLAGS+= -DINPUT_DISABLED
 endif
 
-# OpenXR head mounted display support (make VR=1). Needs the OpenXR loader
-# (libopenxr-dev); the game only uses it when started with -vr, and falls
-# back to the desktop when there is no runtime or headset. See docs/VR.md.
-VR=0
+# OpenXR head mounted display support, built in when the OpenXR headers
+# (libopenxr-dev) are found; VR=0 leaves it out. The loader is opened at
+# run time and only with -vr, so the binary does not depend on it; without
+# a loader, runtime or headset the game stays on the desktop. See docs/VR.md.
+ifeq ($(MACOSX)$(RENDER_DISABLED),0)
+  VR:=$(shell pkg-config --exists openxr && echo 1 || echo 0)
+endif
 ifeq ($(VR),1)
   ifeq ($(RENDER_DISABLED),1)
     $(error "VR=1 needs a GL renderer")
   endif
   CFLAGS += -DVR_OPENXR `pkg-config --cflags openxr`
-  LIB += `pkg-config --libs openxr`
   ifneq ($(MINGW),1)
     ifneq ($(MACOSX),1)
       LIB += `pkg-config --libs x11`
