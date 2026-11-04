@@ -111,29 +111,6 @@ void release_texture( LPTEXTURE texture )
 	free(texture);
 }
 
-#ifdef HALF_SIZE_TEXTURES
-// halve big textures on low memory boards, 2x2 box filter done in place
-static void half_size_image( texture_image_t * image )
-{
-	int x, y, c;
-	int w = image->w / 2;
-	int h = image->h / 2;
-	int row = image->w * 4;
-	unsigned char * src = (unsigned char *) image->data;
-	unsigned char * dst = src;
-	for( y = 0; y < h; y++ )
-		for( x = 0; x < w; x++ )
-			for( c = 0; c < 4; c++ )
-			{
-				unsigned char * p = src + y * 2 * row + x * 8 + c;
-				*dst++ = ( p[0] + p[4] + p[row] + p[row+4] + 2 ) / 4;
-			}
-	image->w = w;
-	image->h = h;
-	image->size = w * h * 4;
-}
-#endif
-
 static bool create_texture(LPTEXTURE *t, const char *path, u_int16_t *width, u_int16_t *height, int numMips, bool * colorkey)
 {
 	texture_t *texdata;
@@ -156,11 +133,6 @@ static bool create_texture(LPTEXTURE *t, const char *path, u_int16_t *width, u_i
 	*width  = (u_int16_t) image.w;
 	*height = (u_int16_t) image.h;
 	(*colorkey) = (bool) image.colorkey;
-
-#ifdef HALF_SIZE_TEXTURES
-	if( !image.colorkey && ( image.w >= 128 || image.h >= 128 ) )
-		half_size_image( &image );
-#endif
 
 	// employ colour key and gamma correction
 	{

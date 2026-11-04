@@ -20,7 +20,7 @@ ifeq ($(PANDORA),1)
   PROFILE?=0
   FLAGS+= -mcpu=cortex-a8 -mfpu=neon -mfloat-abi=softfp
   GLES_LIBS?= -lGLES_CM
-  PLATFORM_CFLAGS+= -DPANDORA -DHALF_SIZE_TEXTURES
+  PLATFORM_CFLAGS+= -DPANDORA
 endif
 
 # general compiler settings
