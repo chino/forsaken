@@ -8983,7 +8983,7 @@ void ShowStartPointsToggle( MENUITEM *item )
 	}
 	else
 	{
-		InitLines();
+		HideStartPoints();
 	}
 }
 
