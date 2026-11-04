@@ -152,7 +152,8 @@ endif
 # run time and only with -vr, so the binary does not depend on it; without
 # a loader, runtime or headset the game stays on the desktop. See docs/VR.md.
 ifeq ($(MACOSX)$(RENDER_DISABLED),0)
-  VR:=$(shell pkg-config --exists openxr && echo 1 || echo 0)
+  VR_PKGS=openxr $(if $(filter 1,$(MINGW)),,x11)
+  VR:=$(shell pkg-config --exists $(VR_PKGS) && echo 1 || echo 0)
 endif
 ifeq ($(VR),1)
   ifeq ($(RENDER_DISABLED),1)
