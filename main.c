@@ -538,6 +538,57 @@ static bool AppInit( char * lpCmdLine )
 }
 
 //
+// Screenshots (F12 or Print Screen) are saved to SNAPSHOT_FOLDER
+//
+
+#include <time.h>
+#include "loadsave.h"
+#include "text.h"
+extern int SystemMessageColour;
+
+static bool screenshot_requested( void )
+{
+#if SDL_VERSION_ATLEAST(2,0,0)
+	if( input_buffer_find( SDLK_PRINTSCREEN ) )
+#else
+	if( input_buffer_find( SDLK_PRINT ) )
+#endif
+		return true;
+	// shift+f12 toggles full screen
+	return input_buffer_find( SDLK_F12 ) && !( SDL_GetModState() & KMOD_SHIFT );
+}
+
+static void take_screenshot( void )
+{
+	char path[ 256 ];
+	char stamp[ 32 ];
+	time_t now = time( NULL );
+	int i;
+
+	if( !folder_exists( SNAPSHOT_FOLDER ) )
+	{
+		AddColourMessageToQue( SystemMessageColour, "could not create folder %s\n", SNAPSHOT_FOLDER );
+		return;
+	}
+
+	strftime( stamp, sizeof(stamp), "%Y%m%d-%H%M%S", localtime( &now ) );
+	snprintf( path, sizeof(path), "%s/projectx-%s.png", SNAPSHOT_FOLDER, stamp );
+	for( i = 2; File_Exists( path ) && i < 100; i++ )
+		snprintf( path, sizeof(path), "%s/projectx-%s-%d.png", SNAPSHOT_FOLDER, stamp, i );
+
+	if( render_screenshot( path ) )
+	{
+		DebugPrintf( "saved screenshot %s\n", path );
+		AddColourMessageToQue( SystemMessageColour, "saved %s\n", path );
+	}
+	else
+	{
+		DebugPrintf( "failed to save screenshot %s\n", path );
+		AddColourMessageToQue( SystemMessageColour, "failed to save screenshot\n" );
+	}
+}
+
+//
 // Render the next frame and update the window
 //
 
@@ -568,6 +619,9 @@ static bool RenderLoop()
 		if ((!PlayDemo || ( MyGameStatus != STATUS_PlayingDemo ) ||	DemoShipInit[ Current_Camera_View ]	))
 #endif
 		{
+			if ( screenshot_requested() )
+				take_screenshot();
+
 			// this is the actual call to render a frame...
 			if (!render_flip(&render_info))
 			{

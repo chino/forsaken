@@ -612,6 +612,54 @@ void render_set_filter( bool red, bool green, bool blue )
 	glColorMask(red?1:0, green?1:0, blue?1:0, 1);
 }
 
+// save the frame that is about to be presented to a png file
+bool render_screenshot( const char * path )
+{
+#ifdef TEXTURE_PNG
+	int x, y, w, h, ok;
+	unsigned char *rgba, *rgb;
+
+	w = render_info.window_size.cx;
+	h = render_info.window_size.cy;
+	if( w <= 0 || h <= 0 )
+		return false;
+
+	rgba = malloc( w * h * 4 );
+	rgb  = malloc( w * h * 3 );
+	if( !rgba || !rgb )
+	{
+		free( rgba );
+		free( rgb );
+		return false;
+	}
+
+	// RGBA/UNSIGNED_BYTE is the one format every GL and GLES accepts
+	glPixelStorei( GL_PACK_ALIGNMENT, 1 );
+	glReadPixels( 0, 0, w, h, GL_RGBA, GL_UNSIGNED_BYTE, rgba );
+	CHECK_GL_ERRORS;
+
+	// gl rows are bottom up, png rows are top down
+	for( y = 0; y < h; y++ )
+	{
+		unsigned char * src = rgba + ( h - 1 - y ) * w * 4;
+		unsigned char * dst = rgb + y * w * 3;
+		for( x = 0; x < w; x++, src += 4, dst += 3 )
+		{
+			dst[0] = src[0];
+			dst[1] = src[1];
+			dst[2] = src[2];
+		}
+	}
+
+	ok = ( save_image_rgb( path, w, h, rgb ) == 0 );
+	free( rgba );
+	free( rgb );
+	return ok;
+#else
+	return false;
+#endif
+}
+
 bool render_flip( render_info_t * info )
 {
 	sdl_render_present(info);

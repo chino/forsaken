@@ -199,6 +199,7 @@ void render_cleanup( render_info_t * info );
 bool render_reset( render_info_t * info );
 void render_set_filter( bool red, bool green, bool blue );
 bool render_flip( render_info_t * info );
+bool render_screenshot( const char * path );
 void reset_trans( void );
 void disable_zbuff_write( void );
 

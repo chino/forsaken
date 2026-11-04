@@ -70,6 +70,7 @@ bool FSCreateTexture(LPTEXTURE *texture, const char *fileName, u_int16_t *width,
 bool render_mode_select( render_info_t * info ){return true;}
 bool render_reset( render_info_t * info ){return true;}
 bool render_flip( render_info_t * info ){return true;}
+bool render_screenshot( const char * path ){return false;}
 bool FSClear(XYRECT * rect){return true;}
 bool FSClearBlack(void){return true;}
 bool FSClearDepth(XYRECT * rect){return true;}
