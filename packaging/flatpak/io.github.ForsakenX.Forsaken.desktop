@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Forsaken
+GenericName=6DOF Shooter
+Comment=Community port of the 1998 six degrees of freedom shooter
+Exec=forsaken
+Icon=io.github.ForsakenX.Forsaken
+Terminal=false
+Categories=Game;ActionGame;
+Keywords=shooter;6dof;descent;
