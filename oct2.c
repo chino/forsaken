@@ -554,6 +554,7 @@ int16_t   LevelNum = 0 ;
 int16_t   NewLevelNum = 0 ;
 int16_t   NumLevels = 0;
 char  ShortLevelNames[MAXLEVELS][MAX_SHORT_LEVEL_NAME];
+int   LevelTrack[MAXLEVELS]; // cd audio track
 char  LevelNames[MAXLEVELS][128];
 char  CollisionNames[MAXLEVELS][128];
 char  CollisionZNames[MAXLEVELS][128];
@@ -1373,6 +1374,28 @@ bool FullScreenViewport()
 	return true;
 }
 
+// cd audio tracks of the original levels, for level lists without track numbers
+static int DefaultLevelTrack( char * name )
+{
+	static const struct { char * name; int track; } tracks[] = {
+		// single player
+		{ "vol2", 5 }, { "asubchb", 9 }, { "nps-sp01", 6 }, { "thermal", 3 },
+		{ "fedbankv", 2 }, { "pship", 8 }, { "spc-sp01", 4 }, { "bio-sphere", 9 },
+		{ "nukerf", 3 }, { "capship", 7 }, { "space", 8 }, { "high", 10 },
+		{ "military", 5 }, { "azt-sp01", 3 }, { "azchb", 6 },
+		// multiplayer
+		{ "biodome", 6 }, { "alpha", 4 }, { "ship", 10 }, { "sewer", 3 },
+		{ "nuke-mp", 9 }, { "nedwheel", 2 }, { "tube", 8 }, { "oldtemple", 9 },
+		{ "refinery", 3 }, { "cruise", 7 }, { "arena", 8 }, { "pandora", 6 },
+		{ "midpand", 3 },
+	};
+	unsigned i;
+	for ( i = 0; i < sizeof(tracks) / sizeof(tracks[0]); i++ )
+		if ( !strcasecmp( name, tracks[ i ].name ) )
+			return tracks[ i ].track;
+	return 2;
+}
+
 bool InitLevels( char * levels_list )
 {
 
@@ -1402,6 +1425,9 @@ bool InitLevels( char * levels_list )
   j=0;
   while ( j < MAXLEVELS && fscanf( f, " %s", ShortLevelNames[ j ] ) == 1 )
   {
+	// optional cd track number after the name
+	if ( fscanf( f, " %d", &LevelTrack[ j ] ) != 1 )
+		LevelTrack[ j ] = DefaultLevelTrack( ShortLevelNames[ j ] );
 
 
 	// get the path to the current mxv file

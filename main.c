@@ -18,6 +18,7 @@
 #include <SDL.h>
 #include "input.h"
 #include "sound.h"
+#include "music.h"
 
 #ifndef WIN32
 #include <unistd.h>
@@ -229,6 +230,14 @@ static bool ParseCommandLine(char* lpCmdLine)
 		{
 			NoSFX = true;
         }
+
+#ifdef MUSIC
+		// turn off the soundtrack only
+		else if (!strcasecmp(option, "NoMusic"))
+		{
+			music_disabled = true;
+		}
+#endif
 		
 		// jump to the host screen
 		else if ( !strcasecmp( option, "QuickHost" ) ) 
@@ -366,6 +375,9 @@ void CleanUpAndPostQuit(void)
 
 	// stop rendering and destroy objects
 	render_cleanup( &render_info );
+
+	// stop the soundtrack while the openal context is still alive
+	music_shutdown();
 
 	// destroy the sound
 	DestroySound( DESTROYSOUND_All );
@@ -698,6 +710,9 @@ int main( int argc, char* argv[] )
 		// process system events
 		if(!handle_events())
 			goto FAILURE;
+
+		// pick / pause the soundtrack for the current game state
+		music_update();
 
         // Attempt to render a frame, if it fails, take a note.  If
         // rendering fails more than twice, abort execution.
