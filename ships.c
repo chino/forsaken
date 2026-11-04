@@ -1042,6 +1042,14 @@ bool ProcessShips()
 				
 					MakeQuat( ShipObjPnt->Angle.x * framelag, ShipObjPnt->Angle.y * framelag, ShipObjPnt->Angle.z * framelag + ShipObjPnt->Autolevel, &StepQuat );
 					QuatMultiply(  &ShipObjPnt->Quat , &StepQuat , &ShipObjPnt->Quat );
+#ifdef VR_OPENXR
+					// swivel chair: turning the body turns the ship
+					if( vr_active() && vr_swivel && i == WhoIAm && !CurrentMenu )
+					{
+						MakeQuat( 0.0F, -vr_swivel_take() * 57.29578F, 0.0F, &StepQuat );
+						QuatMultiply(  &ShipObjPnt->Quat , &StepQuat , &ShipObjPnt->Quat );
+					}
+#endif
 					QuatMultiply(  &ShipObjPnt->RotationForce , &ShipObjPnt->Quat , &ShipObjPnt->Quat );
 					QuatToMatrix( &ShipObjPnt->Quat, &ShipObjPnt->Mat );
 					MakeQuat( 0.0F, 0.0F, 0.0F, &ShipObjPnt->RotationForce );

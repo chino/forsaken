@@ -1749,6 +1749,7 @@ MENU	MENU_NEW_VROptions = {
 		{ 20, 110, 150, 110, 0,				"Invert pitch",			FONT_Small, TEXTFLAG_CentreY,						&vr_invert_pitch,	NULL,	SelectFlatMenuToggle,	DrawFlatMenuToggle,	NULL, 0 },
 		{ 20, 120, 150, 120, 0,				"Left-handed",			FONT_Small, TEXTFLAG_CentreY,						&vr_leftorium,		NULL,	SelectFlatMenuToggle,	DrawFlatMenuToggle,	NULL, 0 },
 		{ 20, 130, 150, 130, 0,				"Swap sticks",			FONT_Small, TEXTFLAG_CentreY,						&vr_swap_sticks,	NULL,	SelectFlatMenuToggle,	DrawFlatMenuToggle,	NULL, 0 },
+		{ 20, 140, 150, 140, 0,				"Swivel chair",			FONT_Small, TEXTFLAG_CentreY,						&vr_swivel,			NULL,	SelectFlatMenuToggle,	DrawFlatMenuToggle,	NULL, 0 },
 		{ 20, 150, 200, 150, 0,				"Controls",				FONT_Small, TEXTFLAG_CentreY,						NULL,				&MENU_NEW_Controls,	MenuChange,	DrawFlatMenuItem,	NULL, 0 },
 		{ 20, 164, 100, 164, 0,				"Back",					FONT_Small, TEXTFLAG_CentreY,						NULL,				NULL,	MenuItemBack,			DrawFlatMenuItem,	NULL, 0 },
 		{ -1, -1, 0, 0, 0, "", 0, 0,  NULL, NULL, NULL, NULL, NULL, 0 }
@@ -1768,7 +1769,8 @@ MENU	MENU_VROptions = {
 		OLDMENUITEM( 200, 240, "Invert Pitch",			&vr_invert_pitch,	NULL,	SelectToggle,	DrawToggle ),
 		OLDMENUITEM( 200, 256, "Left-handed",			&vr_leftorium,		NULL,	SelectToggle,	DrawToggle ),
 		OLDMENUITEM( 200, 272, "Swap Sticks",			&vr_swap_sticks,	NULL,	SelectToggle,	DrawToggle ),
-		OLDMENUITEM( 200, 288, "Controls",				NULL,				&MENU_Keyboard,	MenuChange,	MenuItemDrawName ),
+		OLDMENUITEM( 200, 288, "Swivel Chair",			&vr_swivel,			NULL,	SelectToggle,	DrawToggle ),
+		OLDMENUITEM( 200, 304, "Controls",				NULL,				&MENU_Keyboard,	MenuChange,	MenuItemDrawName ),
 		{ -1 , -1, 0, 0, 0, "" , 0, 0, NULL, NULL , NULL , NULL, NULL, 0 }
 	}
 };
@@ -9430,6 +9432,7 @@ void GetGamePrefs( void )
 	vr_invert_pitch					 = config_get_bool( "VRInvertPitch",			false );
 	vr_leftorium					 = config_get_bool( "VRLeftorium",				false );
 	vr_swap_sticks					 = config_get_bool( "VRSwapSticks",				false );
+	vr_swivel						 = config_get_bool( "VRSwivel",					false );
 #endif
 
 	memset( MyPickupValid, 0, sizeof(MyPickupValid) );
@@ -9631,6 +9634,7 @@ void SetGamePrefs( void )
 		config_set_bool( "VRInvertPitch",	vr_invert_pitch );
 		config_set_bool( "VRLeftorium",		vr_leftorium );
 		config_set_bool( "VRSwapSticks",	vr_swap_sticks );
+		config_set_bool( "VRSwivel",		vr_swivel );
 	}
 #endif
 
