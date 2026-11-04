@@ -1,35 +1,7 @@
 /*
-  OpenXR head mounted display support.
-
-  Everything here only exists in builds made with `make VR=1` (which defines
-  VR_OPENXR), and does nothing at run time unless the game is started with
-  -vr. When the OpenXR runtime or headset is missing, vr_init() logs why and
-  the game carries on rendering to the desktop window as usual.
-
-  The design, in short:
-
-  - The game keeps rendering in its usual "logical" screen space (the window
-    size in render_info.ThisMode). While a VR frame is in flight everything is
-    drawn into offscreen framebuffers instead of the window, and the GL
-    renderer maps the logical viewport onto whichever framebuffer is bound
-    (see vr_scale_rect()).
-
-  - The 3D world is rendered once per eye (RenderCurrentCameraInVR() in
-    oct2.c) with the eye's pose from the runtime composed with the ship's
-    orientation, and the runtime's asymmetric projection.
-
-  - Everything 2D (HUD, menus, loading screens) lands on a "panel" that is
-    submitted as an OpenXR quad layer: head locked as a HUD while flying, or
-    fixed in the room for menus that have no 3D scene behind them.
-
-  - The desktop window mirrors the left eye with the panel laid over it.
-
-  - The controllers appear to the game as an extra joystick, so they show up
-    in the existing joystick configuration menus and are saved with the pilot.
-
-  The OpenXR plumbing (instance, session, swapchains, frame loop and actions)
-  is based on the OpenXR port in Forsaken VR (GameOrDie007/Forsaken-VR),
-  a fork of ForsakenX released under the same license.
+  OpenXR headset support, built with `make VR=1` and enabled with -vr.
+  Falls back to the desktop when no runtime or headset is available.
+  See docs/VR.md. Based on Forsaken VR (GameOrDie007/Forsaken-VR).
 */
 
 #ifndef VR_INCLUDED
