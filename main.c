@@ -382,8 +382,6 @@ void CleanUpAndPostQuit(void)
 
 #endif
 
-	sdl_cleanup_video();
-
 	// should come last
 	SDL_Quit();
 }

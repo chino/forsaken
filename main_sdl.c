@@ -2,9 +2,7 @@
 #include "util.h"
 #include "version.h"
 #include "main_sdl.h"
-#if defined(GLES) && !SDL_VERSION_ATLEAST(2,0,0)
-#include "eglport.h" // SDL 1.2 can not create GLES contexts
-#elif defined(GL) && !defined(GLES)
+#if defined(GL) && !defined(GLES)
 #include "SDL_opengl.h"
 #endif
 
@@ -167,7 +165,7 @@ static void set_opengl_settings( void )
 	}
 
 // this is now done during creation of the renderer
-#if !SDL_VERSION_ATLEAST(2,0,0) && !defined(GLES)
+#if !SDL_VERSION_ATLEAST(2,0,0)
 	DebugPrintf("vsync set to %d\n",render_info.vsync);
 	SDL_GL_SetAttribute(SDL_GL_SWAP_CONTROL,	render_info.vsync );
 #endif
@@ -210,7 +208,7 @@ static u_int32_t create_video_flags( void )
 {
 	u_int32_t flags = SDL_ANYFORMAT;
 
-#if defined(GL) && !defined(GLES)
+#ifdef GL
 	flags |= SDL_OPENGL;
 #endif
 
@@ -251,7 +249,7 @@ static u_int32_t create_window_flags( void )
 
 
 
-#if SDL_VERSION_ATLEAST(2,0,0) && defined(GLES)
+#ifdef GLES
 
 // resize the window on mode changes so the context and textures survive
 static bool create_gles_window( u_int32_t window_flags )
@@ -278,8 +276,7 @@ static bool create_gles_window( u_int32_t window_flags )
 			Msg("main_sdl: failed to create window: %s\n",SDL_GetError());
 			return false;
 		}
-		render_info.gl_context = SDL_GL_CreateContext(render_info.window);
-		if(!render_info.gl_context)
+		if(!SDL_GL_CreateContext(render_info.window))
 		{
 			Msg("main_sdl: failed to create GLES 1.1 context: %s\n",SDL_GetError());
 			return false;
@@ -296,7 +293,7 @@ static bool create_gles_window( u_int32_t window_flags )
 static bool create_video_surface( u_int32_t window_flags, u_int32_t renderer_flags )
 {
 #ifndef RENDER_DISABLED
-  #if SDL_VERSION_ATLEAST(2,0,0) && defined(GLES)
+  #ifdef GLES
 	(void) renderer_flags;
 	if(!create_gles_window( window_flags ))
 		return false;
@@ -338,16 +335,6 @@ static bool create_video_surface( u_int32_t window_flags, u_int32_t renderer_fla
 		Msg("main_sdl: failed to create video surface: %s\n",SDL_GetError());
 		return false;
 	}
-
-   #ifdef GLES
-	// a new video mode means a new window, so start EGL over
-	EGL_Close();
-	if(EGL_Open(render_info.ThisMode.w, render_info.ThisMode.h) != 0)
-	{
-		Msg("main_sdl: failed to create GLES context with EGL\n");
-		return false;
-	}
-   #endif
   #endif
 	
 	print_info();
@@ -415,26 +402,11 @@ bool sdl_init_video( void )
 
 void sdl_render_present( render_info_t * info )
 {
-#if SDL_VERSION_ATLEAST(2,0,0) && defined(GLES)
+#ifdef GLES
 	SDL_GL_SwapWindow(info->window);
 #elif SDL_VERSION_ATLEAST(2,0,0)
 	SDL_RenderPresent(info->renderer);
-#elif defined(GLES)
-	EGL_SwapBuffers();
 #else
 	SDL_GL_SwapBuffers();
-#endif
-}
-
-void sdl_cleanup_video( void )
-{
-#if defined(GLES) && !defined(RENDER_DISABLED)
-  #if SDL_VERSION_ATLEAST(2,0,0)
-	if(render_info.gl_context)
-		SDL_GL_DeleteContext(render_info.gl_context);
-	render_info.gl_context = NULL;
-  #else
-	EGL_Close();
-  #endif
 #endif
 }

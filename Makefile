@@ -13,25 +13,14 @@ PKG_CONFIG?=$(if $(CROSS),$(shell command -v $(CROSS)pkg-config >/dev/null 2>&1 
               echo $(CROSS)pkg-config || echo pkg-config),pkg-config)
 
 # board presets
-# OpenPandora: Cortex-A8, SDL 1.2, OpenGL ES 1.1 via EGL on the framebuffer
+# OpenPandora: Cortex-A8, SDL 2 (pandora video driver), OpenGL ES 1.1
 ifeq ($(PANDORA),1)
+  SDL?=2
   GLES?=1
   PROFILE?=0
   FLAGS+= -mcpu=cortex-a8 -mfpu=neon -mfloat-abi=softfp
   GLES_LIBS?= -lGLES_CM
   PLATFORM_CFLAGS+= -DPANDORA -DHALF_SIZE_TEXTURES
-endif
-
-# Raspberry Pi with the legacy Broadcom VideoCore driver in /opt/vc
-# (current Raspberry Pi OS uses Mesa, there a plain build or GLES=1 works)
-ifeq ($(RPI),1)
-  VC?=/opt/vc
-  GLES?=1
-  PROFILE?=0
-  GLES_LIBS?= -L$(VC)/lib -lbrcmGLESv2
-  EGL_LIBS?= -L$(VC)/lib -lbrcmEGL -lbcm_host -lvcos -lvchiq_arm
-  PLATFORM_CFLAGS+= -DRPI -DHALF_SIZE_TEXTURES -I$(VC)/include \
-    -I$(VC)/include/interface/vcos/pthreads -I$(VC)/include/interface/vmcs_host/linux
 endif
 
 # general compiler settings
@@ -114,15 +103,17 @@ $(if $(shell test "$(GL)" -ge 3 -a "$(SDL)" -lt 2 && echo fail), \
      $(error "GL >= 3 only supported with SDL >= 2"))
 
 # use OpenGL ES 1.1 instead of desktop OpenGL (ARM boards, phones...)
-# with SDL=2 SDL creates the context, with SDL=1 EGL is used directly.
+# SDL 2 creates the context, SDL 1.2 can not.
 GLES?=0
 ifeq ($(GLES),1)
   ifneq ($(GL),1)
     $(error "GLES=1 is only supported with GL=1")
   endif
+  ifneq ($(SDL),2)
+    $(error "GLES=1 is only supported with SDL=2")
+  endif
   GLES_CFLAGS?=$(shell $(PKG_CONFIG) --cflags glesv1_cm 2>/dev/null)
   GLES_LIBS?=$(shell $(PKG_CONFIG) --libs glesv1_cm 2>/dev/null || echo -lGLESv1_CM)
-  EGL_LIBS?=$(shell $(PKG_CONFIG) --libs egl 2>/dev/null || echo -lEGL)
   CFLAGS+= -DGLES $(GLES_CFLAGS)
 endif
 
@@ -160,9 +151,6 @@ else ifeq ($(MACOSX),1)
   LIB += -framework Cocoa  # Used to target Quartz by SDL_.
 else ifeq ($(GLES),1)
   LIB += $(GLES_LIBS)
-  ifeq ($(SDL),1)
-    LIB += $(EGL_LIBS)
-  endif
 else
   LIB += -lGL -lGLU
 endif
@@ -242,7 +230,6 @@ check:
 	@echo "GL = $(GL)"
 	@echo "GLES = $(GLES)"
 	@echo "PANDORA = $(PANDORA)"
-	@echo "RPI = $(RPI)"
 	@echo "PKG_CONFIG = $(PKG_CONFIG)"
 	@echo "RENDER_DISABLED = $(RENDER_DISABLED)"
 	@echo "INPUT_DISABLED = $(INPUT_DISABLED)"
