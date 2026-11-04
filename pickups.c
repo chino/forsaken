@@ -1285,7 +1285,7 @@ void RemotePlayerCollectedPickup( BYTE Player, u_int16_t Owner, u_int16_t ID )
 		{
 			RemotePickupsHeld[ Player ][ Pickups[ i ].Type ]++;
 			// you can only hold one of each primary
-			if( ( Pickups[ i ].Type >= PICKUP_Trojax ) && ( Pickups[ i ].Type <= PICKUP_Laser ) )
+			if( Pickups[ i ].Type <= PICKUP_Laser )
 				RemotePickupsHeld[ Player ][ Pickups[ i ].Type ] = 1;
 		}
 		return;
