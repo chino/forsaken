@@ -1836,7 +1836,7 @@ void EvaluateMessage( network_player_t * from, DWORD len , BYTE * MsgPnt )
 		 			MissedInitPickups[ NumMissedInitPickups ].Type				= lpVeryShortDropPickup->PickupInfo.Type;
 		 			MissedInitPickups[ NumMissedInitPickups ].Owner			= lpVeryShortDropPickup->WhoIAm;
 		 			MissedInitPickups[ NumMissedInitPickups ].ID					= lpVeryShortDropPickup->PickupInfo.IDCount;
-		 			MissedInitPickups[ NumMissedInitPickups ].RegenSlot		= lpVeryShortDropPickup->PickupInfo.RegenSlot;
+		 			MissedInitPickups[ NumMissedInitPickups ].RegenSlot		= ( lpVeryShortDropPickup->PickupInfo.RegenSlot == (BYTE) -1 ) ? -1 : lpVeryShortDropPickup->PickupInfo.RegenSlot;
 		 			MissedInitPickups[ NumMissedInitPickups ].Sparkle			= lpVeryShortDropPickup->PickupInfo.Sparkle;
 		 			MissedInitPickups[ NumMissedInitPickups ].LifeCount		= lpVeryShortDropPickup->PickupInfo.LifeCount;
 		 			MissedInitPickups[ NumMissedInitPickups ].TriggerMod		= lpVeryShortDropPickup->PickupInfo.TriggerMod;
@@ -2555,7 +2555,11 @@ void EvaluateMessage( network_player_t * from, DWORD len , BYTE * MsgPnt )
 		TempPickup.Type = lpVeryShortDropPickup->PickupInfo.Type;
 		TempPickup.Group = lpVeryShortDropPickup->PickupInfo.Group;
 		TempPickup.Speed = lpVeryShortDropPickup->PickupInfo.Speed;
-		TempPickup.RegenSlot = lpVeryShortDropPickup->PickupInfo.RegenSlot;
+		// RegenSlot is sent as a BYTE, -1 ( thrown out / anywhere ) arrives as 255
+		if( lpVeryShortDropPickup->PickupInfo.RegenSlot == (BYTE) -1 )
+			TempPickup.RegenSlot = -1;
+		else
+			TempPickup.RegenSlot = lpVeryShortDropPickup->PickupInfo.RegenSlot;
 		TempPickup.Sparkle = lpVeryShortDropPickup->PickupInfo.Sparkle;
 		TempPickup.LifeCount = lpVeryShortDropPickup->PickupInfo.LifeCount;
 		TempPickup.TriggerMod = lpVeryShortDropPickup->PickupInfo.TriggerMod;
