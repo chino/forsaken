@@ -554,6 +554,15 @@ static void detect_caps( void )
 
 bool render_init( render_info_t * info )
 {
+#if GL >= 3
+	// a core profile has no default vertex array object
+	static GLuint vao = 0;
+	if( !vao )
+	{
+		glGenVertexArrays( 1, &vao );
+		glBindVertexArray( vao );
+	}
+#endif
 	print_info();
 	detect_caps();
 	if(!set_defaults()) return false;
