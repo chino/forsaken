@@ -423,6 +423,12 @@ void render_set_filter( BOOL red, BOOL green, BOOL blue )
 	STATE( D3DRS_COLORWRITEENABLE, flags );
 }
 
+// TODO - screenshots are only implemented for opengl
+BOOL render_screenshot( const char * path )
+{
+	return FALSE;
+}
+
 BOOL render_flip( render_info_t * info )
 {
 	HRESULT hr;
