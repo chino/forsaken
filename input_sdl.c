@@ -236,8 +236,7 @@ void app_quit( void )
 #if SDL_VERSION_ATLEAST(2,0,0)
 static SDL_Scancode last_key_scancode = SDL_SCANCODE_UNKNOWN;
 
-// sdl2 replacement for keysym.unicode: feed typed characters to the menus
-// the same way sdl 1.2 did. only plain ascii is understood by the game.
+// sdl2 has no keysym.unicode, typed characters arrive here
 static void app_text_input( SDL_TextInputEvent * text )
 {
 	const unsigned char * c;
@@ -247,18 +246,14 @@ static void app_text_input( SDL_TextInputEvent * text )
 }
 #endif
 
-// convert a code from the input buffer into the form stored in the
-// control tables: on sdl2 keyboard bindings are scancodes (see
-// sdl2_scancode_keys.h) while the input buffer carries key codes and
-// characters, mouse and joystick codes are the same on both.
+// input buffer code -> binding, keyboard bindings are scancodes on sdl2
 int input_binding_code( int code )
 {
 #if SDL_VERSION_ATLEAST(2,0,0)
 	if( code > 0 && ( ( code & SDLK_SCANCODE_MASK ) || KEY_ON_KEYBOARD( code ) ) )
 	{
 		SDL_Scancode sc = SDL_GetScancodeFromKey( (SDL_Keycode) code );
-		// shifted characters ('A', '!') have no key of their own,
-		// use the key that was physically pressed
+		// shifted characters ('A', '!') have no key of their own
 		if( sc == SDL_SCANCODE_UNKNOWN )
 			sc = last_key_scancode;
 		return (int) sc;
@@ -291,9 +286,7 @@ void app_keyboard( SDL_KeyboardEvent * key )
 	{
 #if SDL_VERSION_ATLEAST(2,0,0)
 		last_key_scancode = key->keysym.scancode;
-		// sdl2 dropped keysym.unicode: printable characters arrive as
-		// SDL_TEXTINPUT (see app_text_input) while text input is active,
-		// everything else is sent as the key code like sdl 1.2 did
+		// printable characters come from SDL_TEXTINPUT while it is active
 		if( !SDL_IsTextInputActive() ||
 		    key->keysym.sym < ' ' || key->keysym.sym >= 127 ||
 		    ( key->keysym.mod & ( KMOD_CTRL | KMOD_ALT | KMOD_GUI ) ) )

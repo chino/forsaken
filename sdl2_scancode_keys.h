@@ -2,16 +2,9 @@
 #define SDL2_SCANCODE_KEYS_INCLUDED
 
 /*
- * Control bindings are looked up in key_state[], which ReadKeyboard() fills
- * from SDL_GetKeyboardState(). SDL 1.2 indexed that array by key code (SDLK_*),
- * SDL2 indexes it by scancode, and SDL2 key codes do not even fit the short
- * VirtualKeycode (SDLK_UP is 0x40000052). So under SDL2 the bindings have to
- * be scancodes.
- *
- * Include this only where the default control tables are written: it makes
- * the SDLK_* names used there expand to the matching SDL2 scancode, so the
- * tables read the same for both SDL versions. Code that compares against
- * key codes from input_buffer (menus etc) must NOT include it.
+ * sdl2 bindings are scancodes (key_state[] comes from SDL_GetKeyboardState).
+ * included by config.c only, so the SDLK_* names in its default control
+ * tables give scancodes; everything else keeps comparing real key codes.
  */
 
 #include <SDL.h>
