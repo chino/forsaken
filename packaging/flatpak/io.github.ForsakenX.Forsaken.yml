@@ -48,7 +48,7 @@ modules:
   - name: luasocket
     buildsystem: simple
     build-commands:
-      - make -C src PLAT=linux LUAV=5.1 LUAINC_linux=/app/include/luajit-2.1
+      - make -C src linux LUAV=5.1 LUAINC_linux=/app/include/luajit-2.1
       - make -C src install PLAT=linux LUAV=5.1 prefix=/app
       - >-
         ar rcs /app/lib/libluasocket.a
