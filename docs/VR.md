@@ -53,7 +53,8 @@ Options:
 | `-vrscale:N`   | 30      | World units per metre. Bigger makes the world feel smaller. |
 | `-vrres:N`     | 100     | Eye resolution as a percentage of what the runtime recommends (10 to 400). |
 
-VR settings, in the config file:
+VR settings, also in **VR Options** in the pause menu and in the title's
+Options > Visuals (both only shown in the headset), which also has **Recenter**:
 
 | Setting            | Default | |
 |--------------------|---------|-|

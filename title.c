@@ -1719,8 +1719,70 @@ MENU	MENU_NEW_VisualsStereo = {
 	}
 };
 
+#ifdef VR_OPENXR
+bool SetVRTurnSpeed( SLIDER *slider )
+{
+	vr_turn_speed = slider->value;
+	return true;
+}
+
+void VRMenuRecenter( MENUITEM *Item )
+{
+	vr_recenter();
+}
+
+SLIDER VRTurnSpeedSlider = { 50, 150, 5, 100, 0, 0.0F, 0.0F, 0, false, NULL, NULL, SetVRTurnSpeed };
+
+MENU	MENU_NEW_VROptions = {
+	"", NULL, (MenuFunc) SetGamePrefs, NULL, 0,
+	{
+		{  0,   0, 200,  20, 0,				"VR Options",			FONT_Large, TEXTFLAG_CentreX | TEXTFLAG_CentreY,	NULL,				NULL,	NULL,					DrawFlatMenuItem,	NULL, 0 },
+		{ 20,  40, 200,  40, 0,				"Recenter",				FONT_Small, TEXTFLAG_CentreY,						NULL,				NULL,	VRMenuRecenter,			DrawFlatMenuItem,	NULL, 0 },
+		{ 20,  56,  95,  56, SLIDER_Value,	"Turn speed %",			FONT_Small, TEXTFLAG_AutoSelect | TEXTFLAG_CentreY,	&VRTurnSpeedSlider,	NULL,	SelectSlider,			DrawFlatMenuSlider,	NULL, 0 },
+		{ 20,  72, 150,  72, 0,				"Auto-level",			FONT_Small, TEXTFLAG_CentreY,						&vr_auto_level,		NULL,	SelectFlatMenuToggle,	DrawFlatMenuToggle,	NULL, 0 },
+		{ 20,  88, 150,  88, 0,				"Ship bob",				FONT_Small, TEXTFLAG_CentreY,						&vr_ship_bob,		NULL,	SelectFlatMenuToggle,	DrawFlatMenuToggle,	NULL, 0 },
+		{ 20, 104, 150, 104, 0,				"HUD on the cockpit",	FONT_Small, TEXTFLAG_CentreY,						&vr_hud_cockpit,	NULL,	SelectFlatMenuToggle,	DrawFlatMenuToggle,	NULL, 0 },
+		{ 20, 120, 150, 120, 0,				"Vibration",			FONT_Small, TEXTFLAG_CentreY,						&vr_vibration,		NULL,	SelectFlatMenuToggle,	DrawFlatMenuToggle,	NULL, 0 },
+		{ 20, 150, 100, 150, 0,				"Back",					FONT_Small, TEXTFLAG_CentreY,						NULL,				NULL,	MenuItemBack,			DrawFlatMenuItem,	NULL, 0 },
+		{ -1, -1, 0, 0, 0, "", 0, 0,  NULL, NULL, NULL, NULL, NULL, 0 }
+	}
+};
+
+MENU	MENU_VROptions = {
+	"VR Options", NULL, (MenuFunc) SetGamePrefs, NULL, 0,
+	{
+		OLDMENUITEM( 200, 128, "Recenter",				NULL,				NULL,	VRMenuRecenter,	MenuItemDrawName ),
+		OLDMENUITEM( 200, 144, "Turn Speed %",			&VRTurnSpeedSlider,	NULL,	SelectSlider,	DrawSlider ),
+		OLDMENUITEM( 200, 160, "Auto-level",			&vr_auto_level,		NULL,	SelectToggle,	DrawToggle ),
+		OLDMENUITEM( 200, 176, "Ship Bob",				&vr_ship_bob,		NULL,	SelectToggle,	DrawToggle ),
+		OLDMENUITEM( 200, 192, "HUD on the Cockpit",	&vr_hud_cockpit,	NULL,	SelectToggle,	DrawToggle ),
+		OLDMENUITEM( 200, 208, "Vibration",				&vr_vibration,		NULL,	SelectToggle,	DrawToggle ),
+		{ -1 , -1, 0, 0, 0, "" , 0, 0, NULL, NULL , NULL , NULL, NULL, 0 }
+	}
+};
+
+// VR Options is only offered with a headset
+void InitVisualsMenu( MENU *Menu )
+{
+	MENUITEM *item;
+
+	for ( item = Menu->Item; item->x >= 0; item++ )
+	{
+		if ( item->Value == &MENU_NEW_VROptions )
+		{
+			item->FuncSelect = vr_active() ? MenuChange : NULL;
+			item->FuncDraw = vr_active() ? DrawFlatMenuItem : NULL;
+		}
+	}
+}
+#endif
+
 MENU	MENU_NEW_Visuals = {
+#ifdef VR_OPENXR
+	"", InitVisualsMenu, NULL, NULL, TITLE_TIMER_Visuals,
+#else
 	"", NULL, NULL, NULL, TITLE_TIMER_Visuals,
+#endif
 	{
 		{  0,   0, 200,  20, 0,					LT_MENU_NEW_Visuals0 /*"Visuals"*/,					FONT_Large, TEXTFLAG_CentreX | TEXTFLAG_CentreY,	NULL,			NULL,						NULL,					DrawFlatMenuItem,	NULL, 0 },
 		{ 20,  40, 200,  50, 0,					LT_MENU_NEW_Visuals1 /*"Change Detail Levels"*/,	FONT_Small, TEXTFLAG_CentreY,						NULL,			&MENU_NEW_DetailLevels,		MenuChange,				DrawFlatMenuItem,	NULL, 0 },
@@ -1731,6 +1793,9 @@ MENU	MENU_NEW_Visuals = {
 		{ 20, 112, 150, 112, 0,					"Vertical Sync (requires restart)",			FONT_Small, TEXTFLAG_CentreY,	&render_info.vsync,	NewMenuSelectMode,	SelectFlatMenuToggle, DrawFlatMenuToggle,		NULL, 0 },
 		{ 20, 124, 200, 124, 0,					"anaglyph stereo 3d options",						FONT_Small, TEXTFLAG_CentreY,						NULL,			&MENU_NEW_VisualsStereo,	MenuChange,				DrawFlatMenuItem,	NULL, 0 },		 
 		{ 20, 136, 150, 136, 0,					"Tint Bike to Team Color",						FONT_Small, TEXTFLAG_CentreY,		&TintBikeTeamColor,		NULL,	SelectFlatMenuToggle,	DrawFlatMenuToggle,	NULL, 0 },		 
+#ifdef VR_OPENXR
+		{ 20, 148, 200, 148, 0,					"VR Options",										FONT_Small, TEXTFLAG_CentreY,						NULL,			&MENU_NEW_VROptions,		MenuChange,				DrawFlatMenuItem,	NULL, 0 },
+#endif
 		{ 20, 160, 100, 160, 0,					LT_MENU_NEW_Visuals5 /*"back"*/,					FONT_Small, TEXTFLAG_CentreY,						NULL,			NULL,						MenuItemBack,			DrawFlatMenuItem,	NULL, 0 },		 
 		{ -1, -1, 0, 0, 0, "", 0, 0,  NULL, NULL, NULL, NULL, NULL, 0 }
 	}
@@ -3002,6 +3067,9 @@ MENU	MENU_InGame = { LT_MENU_InGame0 /*"Forsaken"*/ , InitInGameMenu , ExitInGam
 					  OLDMENUITEM( 200, 144, LT_MENU_InGame3  /*"Load Game"					*/,	NULL,						&MENU_LoadSavedGame,	MenuChange,				MenuItemDrawName),
 					  OLDMENUITEM( 200, 160, LT_MENU_InGame4  /*"Save Game"					*/,	NULL,						&MENU_SaveGame,			MenuChange,				MenuItemDrawName),
 					  OLDMENUITEM( 200, 176, LT_MENU_InGame5  /*"Options"					*/,	NULL,						&MENU_Options,			MenuChange,				MenuItemDrawName),
+#ifdef VR_OPENXR
+					  OLDMENUITEM( 200, 208, "VR Options",										NULL,						&MENU_VROptions,		MenuChange,				MenuItemDrawName),
+#endif
 					  OLDMENUITEM( 200, 192, LT_MENU_InGame26 /*"Host Options"				*/,	NULL,						&MENU_Host_Options,		MenuChange,				MenuItemDrawName),
 					  OLDMENUITEM( 200, 224, LT_MENU_InGame8  /*"Quit to Main Menu"			*/,	NULL,						NULL,					SelectQuitCurrentGame,	MenuItemDrawName),
 					  OLDMENUITEM( 200, 240, LT_MENU_InGame25 /*"Quit to desktop"			*/,	NULL,						NULL,					SelectQuit,				MenuItemDrawName),
@@ -3027,6 +3095,9 @@ MENU	MENU_InGameSingle = { LT_MENU_InGame0 /*"Forsaken"*/ , InitInGameMenu , Exi
 					  OLDMENUITEM( 200, 144, LT_MENU_InGame3  /*"Load Game"					*/,	NULL,						&MENU_LoadSavedGame,	MenuChange,				MenuItemDrawName),
 					  OLDMENUITEM( 200, 160, LT_MENU_InGame4  /*"Save Game"					*/,	NULL,						&MENU_SaveGame,			MenuChange,				MenuItemDrawName),
 					  OLDMENUITEM( 200, 176, LT_MENU_InGame5  /*"Options"					*/,	NULL,						&MENU_Options,			MenuChange,				MenuItemDrawName),
+#ifdef VR_OPENXR
+					  OLDMENUITEM( 200, 208, "VR Options",										NULL,						&MENU_VROptions,		MenuChange,				MenuItemDrawName),
+#endif
 					  OLDMENUITEM( 200, 224, LT_MENU_InGame8  /*"Quit to Main Menu"			*/,	NULL,						NULL,					SelectQuitCurrentGame,	MenuItemDrawName),
 					  OLDMENUITEM( 200, 240, LT_MENU_InGame25 /*"Quit to desktop"			*/,	NULL,						NULL,					SelectQuit,				MenuItemDrawName),
 #ifndef EXTERNAL_DEMO
@@ -8234,6 +8305,14 @@ void InitInGameMenu( MENU *Menu )
 			}
 		}
 
+#ifdef VR_OPENXR
+		else if ( item->Value == &MENU_VROptions )
+		{
+			item->FuncSelect = vr_active() ? MenuChange : NULL;
+			item->FuncDraw = vr_active() ? MenuItemDrawName : NULL;
+		}
+#endif
+
 		else if ( item->Value == &MENU_Save || item->Value == &MENU_DebugMode )
 		{
 			if ( DebugInfo )
@@ -9330,7 +9409,7 @@ void GetGamePrefs( void )
 	render_info.fullscreen			 = config_get_bool( "FullScreen",				false );
 #ifdef VR_OPENXR
 	vr_requested					 = config_get_bool( "VR",						false );
-	vr_turn_speed					 = config_get_int( "VRTurnSpeed",				100 );
+	vr_turn_speed = VRTurnSpeedSlider.value = config_get_int( "VRTurnSpeed",	100 );
 	vr_auto_level					 = config_get_bool( "VRAutoLevel",				false );
 	vr_ship_bob						 = config_get_bool( "VRShipBob",				true );
 	vr_hud_cockpit					 = config_get_bool( "VRHudCockpit",				true );
@@ -9524,6 +9603,16 @@ void SetGamePrefs( void )
 	config_set_bool( "AllowMantle",             MyPickupValid[ PICKUP_Mantle ] );
 	config_set_bool( "AllowInv",                MyPickupValid[ PICKUP_Inv ] );
 	config_set_bool( "VSync",                   render_info.vsync );
+#ifdef VR_OPENXR
+	if( vr_active() )
+	{
+		config_set_int( "VRTurnSpeed",		vr_turn_speed );
+		config_set_bool( "VRAutoLevel",		vr_auto_level );
+		config_set_bool( "VRShipBob",		vr_ship_bob );
+		config_set_bool( "VRHudCockpit",	vr_hud_cockpit );
+		config_set_bool( "VRVibration",		vr_vibration );
+	}
+#endif
 
 	// integers
 
