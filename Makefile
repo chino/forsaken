@@ -66,7 +66,7 @@ endif
 MACOSX=$(shell uname -a | grep -qi darwin && echo 1 || echo 0)
 
 # lua scripting (config loader, public game list, bots)
-LUA=1
+LUA=0
 ifeq ($(LUA),1)
   # some systems use lua5.1
   LUA_PKG=$(shell pkg-config lua && echo lua || echo lua5.1)
