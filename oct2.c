@@ -77,6 +77,7 @@ extern bool ShowWeaponsPossessedOnHUD;
 extern bool ShowClockOnHUD;
 extern bool ShowKPMOnHUD;
 extern bool ShowSpeedOnHUD;
+extern bool ShowHealthBarsOnHUD;
 
 extern render_info_t render_info;
 extern bool Bsp_Duplicate( BSP_HEADER *src, BSP_HEADER *dup );
@@ -1512,6 +1513,16 @@ int GetCurPrimAmmo( void )
 
 float HealthCount = 0.0F;
 int PowerSizes[6] = { 0 , 4 , 16 , 24 , 40 , 56 };
+// original game's shield/hull bar, turns red when hit
+static void DrawHealthBar( float value, int hit, int x, int y )
+{
+	if( value > 255.0F ) value = 255.0F;
+	if( value <= 0.0F ) return;
+	if( hit > 24 ) hit = 24;
+	AddScreenPolyTextScale( 72, (float) x, (float) y, value / 32.0F, 1.0F,
+		(u_int8_t)( 63 + hit * 8 ), (u_int8_t)( 255 - hit * 8 ), 64, 255 );
+}
+
 void DrawSimplePanel()
 {
 	int current = 0;
@@ -1659,6 +1670,8 @@ void DrawSimplePanel()
 			if( WatchPlayerSelect.value == WhoIAm )
 			{
 				Printu_int16_t( (u_int16_t) Ships[WhoIAm].Object.Shield, right, top, HUDColour );
+				if( ShowHealthBarsOnHUD )
+					DrawHealthBar( Ships[WhoIAm].Object.Shield, ShieldHit, right + FontWidth*4, top + (FontHeight>>1) );
 				if( ShieldHit ) ShieldHit -=1;
 			}
 			else
@@ -1671,6 +1684,8 @@ void DrawSimplePanel()
 			if( WatchPlayerSelect.value == WhoIAm )
 			{
 				Printu_int16_t( (u_int16_t) Ships[WhoIAm].Object.Hull, right, top, HUDColour );
+				if( ShowHealthBarsOnHUD )
+					DrawHealthBar( Ships[WhoIAm].Object.Hull, HullHit, right + FontWidth*4, top + (FontHeight>>1) );
 				if( HullHit ) HullHit -=1;          
 			}
 			else
