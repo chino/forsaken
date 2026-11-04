@@ -931,7 +931,7 @@ bool draw_2d_object(RENDEROBJECT *renderObject){return draw_render_object(render
 bool draw_line_object(RENDEROBJECT *renderObject){return draw_render_object(renderObject,GL_LINES,false);}
 
 #if GL == 1
-	#define delete_buffer(b) free( b )
+	#define delete_buffer(b) free( *(b) )
 #else
 	#define delete_buffer(b) glDeleteBuffers( 1, b )
 #endif
