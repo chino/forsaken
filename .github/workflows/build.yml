@@ -14,10 +14,19 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-24.04, ubuntu-24.04-arm, macos-14]
+        include:
+          - os: ubuntu-24.04
+          # forsaken-libs' libpng 1.4.4 and enet 1.2.5 ship a 2009
+          # config.guess that does not know aarch64, so use distro libs
+          - os: ubuntu-24.04-arm
+            distro-libs: true
+          - os: macos-14
+            make-flags: PROFILE=0 # apple clang has no -pg
     runs-on: ${{ matrix.os }}
+    env:
+      MAKE: ${{ matrix.distro-libs && 'make' || './libs/make.sh' }} -j4 ${{ matrix.make-flags }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Install build tools (linux)
         if: runner.os == 'Linux'
@@ -27,28 +36,39 @@ jobs:
             libx11-dev libxext-dev libgl-dev libglu1-mesa-dev \
             libasound2-dev libpulse-dev libsdl2-dev
 
+      - name: Install distro libs
+        if: matrix.distro-libs
+        run: |
+          sudo apt-get install -y libsdl1.2-dev liblua5.1-0-dev lua-socket-dev \
+            libenet-dev libpng-dev zlib1g-dev libopenal-dev
+
       - name: Install build tools (macos)
         if: runner.os == 'macOS'
         run: |
-          brew install autoconf automake libtool gnu-sed pkgconf sdl2
+          # forsaken-libs' scripts expect GNU sed and find
+          brew install autoconf automake libtool gnu-sed findutils pkgconf sdl2
           echo "$(brew --prefix gnu-sed)/libexec/gnubin" >> $GITHUB_PATH
+          echo "$(brew --prefix findutils)/libexec/gnubin" >> $GITHUB_PATH
 
       - name: Clone forsaken-libs
+        if: ${{ !matrix.distro-libs }}
         id: libs
         run: |
           git clone --depth 1 https://github.com/ForsakenX/forsaken-libs.git libs
           echo "rev=$(git -C libs rev-parse HEAD)" >> $GITHUB_OUTPUT
 
-      - uses: actions/cache@v4
+      - uses: actions/cache@v5
+        if: ${{ !matrix.distro-libs }}
         with:
           path: libs
           key: libs-${{ matrix.os }}-${{ steps.libs.outputs.rev }}
 
       - name: Build forsaken-libs
+        if: ${{ !matrix.distro-libs }}
         run: ./libs/src/build.sh
 
       - name: Build SDL=1 GL=1
-        run: ./libs/make.sh -j4 ${{ runner.os == 'macOS' && 'PROFILE=0' || '' }}
+        run: $MAKE
 
       - name: Build SDL=2 GL=3 (SDL2 from the system)
-        run: make clean && ./libs/make.sh -j4 SDL=2 GL=3 ${{ runner.os == 'macOS' && 'PROFILE=0' || '' }}
+        run: make clean && $MAKE SDL=2 GL=3
