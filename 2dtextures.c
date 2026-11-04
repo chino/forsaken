@@ -319,6 +319,25 @@ FRAME_INFO * Load_Off_File( int8_t * Filename, bool Scale, int LoadTPages, int16
 		Frm_Info->vid_tpage_index = Name_Index[ 0 ];
 		Frm_Info->sys_tpage_index = -1;
 
+		// The box/frame/offset tables follow the variable length t-page
+		// names so they can start on any byte.  BOX_INFO holds floats, so
+		// move the tables to a fresh buffer where they are properly aligned
+		// (Num_Boxes takes 2 bytes, padding puts Box_Info at offset 4).
+		{
+			u_int32_t	Table_Size = File_Size - (u_int32_t) ( Char_Ptr - Off_Buffer );
+			int8_t	*	Table_Buffer = malloc( Table_Size + 2 );
+			if( Table_Buffer == NULL )
+			{
+				free( Frm_Info );
+				free( Off_Buffer );
+				return( NULL );
+			}
+			memcpy( Table_Buffer + 2, Char_Ptr, Table_Size );
+			free( Off_Buffer );
+			Off_Buffer = Table_Buffer;
+			Char_Ptr = Table_Buffer + 2;
+		}
+
 		Short_Ptr = (int16_t *) Char_Ptr;
 		Num_Boxes = *Short_Ptr++;											// Number of Boxes
 		Box_Info = (BOX_INFO *) Short_Ptr;
