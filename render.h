@@ -60,7 +60,7 @@ typedef struct {
 
 #if SDL_VERSION_ATLEAST(2,0,0)
 	SDL_Window*             window;
-	SDL_Renderer*           renderer;
+	SDL_GLContext           gl_context;
 #else
 	SDL_Surface*	        screen;
 #endif

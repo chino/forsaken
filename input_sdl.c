@@ -2,6 +2,7 @@
 #include "input.h"
 #include "util.h"
 #include "render.h"
+#include "main_sdl.h"
 #include <SDL.h>
 
 JOYSTICKINFO JoystickInfo[MAX_JOYSTICKS];
@@ -88,25 +89,24 @@ int input_buffer_find( int code )
 // Window and Activate Events
 //////////////////////////////////////////////
 
-// TODO
-//	when this is ready then pass SDL_RESIZABLE to SDL_SetVideoMode
-//  need to resize video with SDL_SetVideoMode
 bool bIgnoreWM_SIZE = false; // ignores resize events
 #if SDL_VERSION_ATLEAST(2,0,0)
+extern bool render_init( render_info_t * info );
+extern bool InitView( void );
+
+// user resized the window, menu mode changes set the size themselves
 void app_resize( SDL_WindowEvent * window )
-#else
-void app_resize( SDL_ResizeEvent * resize )
-#endif
 {
-	DebugPrintf("Window size changed.\n");
+	int w, h;
 
-	// TODO - need to save resize.w/h somewhere
-
-	if (!bIgnoreWM_SIZE)
+	if( bIgnoreWM_SIZE || render_info.fullscreen || !render_info.ok_to_render )
 		return;
 
-	// we should save the size
-	// then startup at this size next time
+	SDL_GL_GetDrawableSize( render_info.window, &w, &h );
+	if( w <= 0 || h <= 0 || ( w == render_info.ThisMode.w && h == render_info.ThisMode.h ) )
+		return;
+
+	DebugPrintf("Window size changed to %dx%d\n", w, h);
 
 	if( MyGameStatus == STATUS_Title )
 	{
@@ -114,8 +114,9 @@ void app_resize( SDL_ResizeEvent * resize )
 		VduClear();
 	}
 
-	// resize d3d to match the window size..
-	// TODO does d3d do the resizing on it's own now?
+	sdl_set_render_size( w, h );
+	render_init( &render_info );
+	InitView();
 
 	if( MyGameStatus == STATUS_Title )
 	{
@@ -127,6 +128,13 @@ void app_resize( SDL_ResizeEvent * resize )
 
 	SetGamePrefs();
 }
+#else
+// the sdl 1.2 window is not resizable
+void app_resize( SDL_ResizeEvent * resize )
+{
+	DebugPrintf("Window size changed.\n");
+}
+#endif
 
 #if SDL_VERSION_ATLEAST(2,0,0)
 void app_active( SDL_WindowEvent * window )
@@ -140,7 +148,7 @@ void app_active( SDL_ActiveEvent * active )
 #if SDL_VERSION_ATLEAST(2,0,0)
 	bool gained  = window -> event == SDL_WINDOWEVENT_FOCUS_GAINED;
 	bool lost    = window -> event == SDL_WINDOWEVENT_FOCUS_LOST;
-	bool resized = window -> event == SDL_WINDOWEVENT_RESIZED;
+	bool resized = window -> event == SDL_WINDOWEVENT_SIZE_CHANGED;
 	bool exposed = window -> event == SDL_WINDOWEVENT_EXPOSED;
 #else
 	bool gained = active -> gain;
