@@ -22,9 +22,10 @@ jobs:
             distro-libs: true
           - os: macos-14
             make-flags: PROFILE=0 # apple clang has no -pg
+    name: ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     env:
-      MAKE: ${{ matrix.distro-libs && 'make' || './libs/make.sh' }} -j4 ${{ matrix.make-flags }}
+      BUILD: ${{ matrix.distro-libs && 'make' || './libs/make.sh' }} -j4 ${{ matrix.make-flags }}
     steps:
       - uses: actions/checkout@v5
 
@@ -68,7 +69,7 @@ jobs:
         run: ./libs/src/build.sh
 
       - name: Build SDL=1 GL=1
-        run: $MAKE
+        run: $BUILD
 
       - name: Build SDL=2 GL=3 (SDL2 from the system)
-        run: make clean && $MAKE SDL=2 GL=3
+        run: make clean && $BUILD SDL=2 GL=3
