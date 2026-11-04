@@ -693,6 +693,16 @@ static void vr_menu_key( int key )
 	input_buffer_send( key );
 }
 
+static void vr_swap_axes( vr_controllers_t * c, int a, int b )
+{
+	float f = c->axis[a]; c->axis[a] = c->axis[b]; c->axis[b] = f;
+}
+
+static void vr_swap_buttons( vr_controllers_t * c, int a, int b )
+{
+	bool t = c->button[a]; c->button[a] = c->button[b]; c->button[b] = t;
+}
+
 // Feed the controllers into the joystick state each frame, and into the
 // menus as key presses: stick or d-pad to move, A or the right trigger to
 // choose, B to go back. The menu button is Escape everywhere.
@@ -702,7 +712,7 @@ static void vr_joystick_update( void )
 	static Uint32 repeat_at = 0;
 	static int repeat_key = 0;
 	vr_controllers_t now;
-	int j, deadzone, key;
+	int j, deadzone, base, key;
 	Uint32 ticks = SDL_GetTicks();
 
 	if( vr_joystick < 0 )
@@ -710,11 +720,35 @@ static void vr_joystick_update( void )
 
 	vr_read_controllers( &now );	// all zero when there is nothing to read
 
+	if( vr_leftorium )
+	{
+		vr_swap_axes( &now, VR_AXIS_LEFT_TRIGGER, VR_AXIS_RIGHT_TRIGGER );
+		vr_swap_buttons( &now, VR_BUTTON_LEFT_TRIGGER, VR_BUTTON_RIGHT_TRIGGER );
+		vr_swap_buttons( &now, VR_BUTTON_LEFT_GRIP, VR_BUTTON_RIGHT_GRIP );
+		vr_swap_buttons( &now, VR_BUTTON_A, VR_BUTTON_X );
+		vr_swap_buttons( &now, VR_BUTTON_B, VR_BUTTON_Y );
+	}
+	if( vr_swap_sticks )
+	{
+		vr_swap_axes( &now, VR_AXIS_LEFT_X, VR_AXIS_RIGHT_X );
+		vr_swap_axes( &now, VR_AXIS_LEFT_Y, VR_AXIS_RIGHT_Y );
+		vr_swap_buttons( &now, VR_BUTTON_LEFT_STICK, VR_BUTTON_RIGHT_STICK );
+	}
+
 	for( j = 0; j < VR_AXES; j++ )
 	{
 		long value = (long) ( now.axis[j] * 100.0f );
-		deadzone = JoystickInfo[ vr_joystick ].Axis[j].deadzone;
-		joy_axis_state[ vr_joystick ][ j ] = ( labs( value ) > deadzone ) ? value : 0;
+		deadzone = base = JoystickInfo[ vr_joystick ].Axis[j].deadzone;
+		// the right stick's dead zone widens on each axis the further the
+		// other is pushed: a stick pushed straight up is never quite
+		// straight, and a little yaw turns a loop into a corkscrew
+		if( j == VR_AXIS_RIGHT_X || j == VR_AXIS_RIGHT_Y )
+			deadzone += (int) ( 25.0f * fabsf( now.axis[ j == VR_AXIS_RIGHT_X ? VR_AXIS_RIGHT_Y : VR_AXIS_RIGHT_X ] ) );
+		if( labs( value ) <= deadzone || deadzone >= 100 )
+			value = 0;
+		else if( deadzone > base )
+			value = ( value > 0 ? 1 : -1 ) * ( base + ( labs( value ) - deadzone ) * ( 100 - base ) / ( 100 - deadzone ) );
+		joy_axis_state[ vr_joystick ][ j ] = value;
 	}
 
 	for( j = 0; j < VR_BUTTONS; j++ )

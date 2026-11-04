@@ -122,6 +122,12 @@ void vr_haptic( int hand, float amplitude, int ms );
 // buzz when firing and when hit (VRVibration)
 extern bool vr_vibration;
 
+// stick up puts the nose down (VRInvertPitch); the left hand takes the
+// right's trigger, grip and buttons (VRLeftorium); the sticks swap (VRSwapSticks)
+extern bool vr_invert_pitch;
+extern bool vr_leftorium;
+extern bool vr_swap_sticks;
+
 // the desktop window shows a steady, level cut-out of the left eye instead
 // of following every movement of the head (VRSteadyMirror)
 extern bool vr_steady_mirror;

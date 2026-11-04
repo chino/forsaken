@@ -1618,10 +1618,14 @@ void ReadJoystickInput(SHIPCONTROL *ctrl, int joysticknum)
 				amount  = -amount;
 
 #ifdef VR_OPENXR
-			/* the headset controllers turn at their own rate */
+			/* the headset controllers turn at their own rate and may invert pitch */
 			if ( ShipAction >= SHIPACTION_RotateUp && ShipAction <= SHIPACTION_RotateRight &&
 				!strcasecmp( JoystickInfo[ joysticknum ].Name, VR_JOYSTICK_NAME ) )
+			{
 				amount *= vr_turn_speed / 100.0F;
+				if ( vr_invert_pitch && ShipAction <= SHIPACTION_RotateDown )
+					amount = -amount;
+			}
 #endif
 
 			/* perform the action */

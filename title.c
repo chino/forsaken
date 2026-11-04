@@ -1740,12 +1740,15 @@ MENU	MENU_NEW_VROptions = {
 	{
 		{  0,   0, 200,  20, 0,				"VR Options",			FONT_Large, TEXTFLAG_CentreX | TEXTFLAG_CentreY,	NULL,				NULL,	NULL,					DrawFlatMenuItem,	NULL, 0 },
 		{ 20,  40, 200,  40, 0,				"Recenter",				FONT_Small, TEXTFLAG_CentreY,						NULL,				NULL,	VRMenuRecenter,			DrawFlatMenuItem,	NULL, 0 },
-		{ 20,  56,  95,  56, SLIDER_Value,	"Turn speed %",			FONT_Small, TEXTFLAG_AutoSelect | TEXTFLAG_CentreY,	&VRTurnSpeedSlider,	NULL,	SelectSlider,			DrawFlatMenuSlider,	NULL, 0 },
-		{ 20,  72, 150,  72, 0,				"Auto-level",			FONT_Small, TEXTFLAG_CentreY,						&vr_auto_level,		NULL,	SelectFlatMenuToggle,	DrawFlatMenuToggle,	NULL, 0 },
-		{ 20,  88, 150,  88, 0,				"Ship bob",				FONT_Small, TEXTFLAG_CentreY,						&vr_ship_bob,		NULL,	SelectFlatMenuToggle,	DrawFlatMenuToggle,	NULL, 0 },
-		{ 20, 104, 150, 104, 0,				"HUD on the cockpit",	FONT_Small, TEXTFLAG_CentreY,						&vr_hud_cockpit,	NULL,	SelectFlatMenuToggle,	DrawFlatMenuToggle,	NULL, 0 },
-		{ 20, 120, 150, 120, 0,				"Vibration",			FONT_Small, TEXTFLAG_CentreY,						&vr_vibration,		NULL,	SelectFlatMenuToggle,	DrawFlatMenuToggle,	NULL, 0 },
-		{ 20, 136, 150, 136, 0,				"Steady desktop view",	FONT_Small, TEXTFLAG_CentreY,						&vr_steady_mirror,	NULL,	SelectFlatMenuToggle,	DrawFlatMenuToggle,	NULL, 0 },
+		{ 20,  50,  95,  50, SLIDER_Value,	"Turn speed %",			FONT_Small, TEXTFLAG_AutoSelect | TEXTFLAG_CentreY,	&VRTurnSpeedSlider,	NULL,	SelectSlider,			DrawFlatMenuSlider,	NULL, 0 },
+		{ 20,  60, 150,  60, 0,				"Auto-level",			FONT_Small, TEXTFLAG_CentreY,						&vr_auto_level,		NULL,	SelectFlatMenuToggle,	DrawFlatMenuToggle,	NULL, 0 },
+		{ 20,  70, 150,  70, 0,				"Ship bob",				FONT_Small, TEXTFLAG_CentreY,						&vr_ship_bob,		NULL,	SelectFlatMenuToggle,	DrawFlatMenuToggle,	NULL, 0 },
+		{ 20,  80, 150,  80, 0,				"HUD on the cockpit",	FONT_Small, TEXTFLAG_CentreY,						&vr_hud_cockpit,	NULL,	SelectFlatMenuToggle,	DrawFlatMenuToggle,	NULL, 0 },
+		{ 20,  90, 150,  90, 0,				"Vibration",			FONT_Small, TEXTFLAG_CentreY,						&vr_vibration,		NULL,	SelectFlatMenuToggle,	DrawFlatMenuToggle,	NULL, 0 },
+		{ 20, 100, 150, 100, 0,				"Steady desktop view",	FONT_Small, TEXTFLAG_CentreY,						&vr_steady_mirror,	NULL,	SelectFlatMenuToggle,	DrawFlatMenuToggle,	NULL, 0 },
+		{ 20, 110, 150, 110, 0,				"Invert pitch",			FONT_Small, TEXTFLAG_CentreY,						&vr_invert_pitch,	NULL,	SelectFlatMenuToggle,	DrawFlatMenuToggle,	NULL, 0 },
+		{ 20, 120, 150, 120, 0,				"Left-handed",			FONT_Small, TEXTFLAG_CentreY,						&vr_leftorium,		NULL,	SelectFlatMenuToggle,	DrawFlatMenuToggle,	NULL, 0 },
+		{ 20, 130, 150, 130, 0,				"Swap sticks",			FONT_Small, TEXTFLAG_CentreY,						&vr_swap_sticks,	NULL,	SelectFlatMenuToggle,	DrawFlatMenuToggle,	NULL, 0 },
 		{ 20, 150, 200, 150, 0,				"Controls",				FONT_Small, TEXTFLAG_CentreY,						NULL,				&MENU_NEW_Controls,	MenuChange,	DrawFlatMenuItem,	NULL, 0 },
 		{ 20, 164, 100, 164, 0,				"Back",					FONT_Small, TEXTFLAG_CentreY,						NULL,				NULL,	MenuItemBack,			DrawFlatMenuItem,	NULL, 0 },
 		{ -1, -1, 0, 0, 0, "", 0, 0,  NULL, NULL, NULL, NULL, NULL, 0 }
@@ -1762,7 +1765,10 @@ MENU	MENU_VROptions = {
 		OLDMENUITEM( 200, 192, "HUD on the Cockpit",	&vr_hud_cockpit,	NULL,	SelectToggle,	DrawToggle ),
 		OLDMENUITEM( 200, 208, "Vibration",				&vr_vibration,		NULL,	SelectToggle,	DrawToggle ),
 		OLDMENUITEM( 200, 224, "Steady Desktop View",	&vr_steady_mirror,	NULL,	SelectToggle,	DrawToggle ),
-		OLDMENUITEM( 200, 240, "Controls",				NULL,				&MENU_Keyboard,	MenuChange,	MenuItemDrawName ),
+		OLDMENUITEM( 200, 240, "Invert Pitch",			&vr_invert_pitch,	NULL,	SelectToggle,	DrawToggle ),
+		OLDMENUITEM( 200, 256, "Left-handed",			&vr_leftorium,		NULL,	SelectToggle,	DrawToggle ),
+		OLDMENUITEM( 200, 272, "Swap Sticks",			&vr_swap_sticks,	NULL,	SelectToggle,	DrawToggle ),
+		OLDMENUITEM( 200, 288, "Controls",				NULL,				&MENU_Keyboard,	MenuChange,	MenuItemDrawName ),
 		{ -1 , -1, 0, 0, 0, "" , 0, 0, NULL, NULL , NULL , NULL, NULL, 0 }
 	}
 };
@@ -9421,6 +9427,9 @@ void GetGamePrefs( void )
 	vr_hud_cockpit					 = config_get_bool( "VRHudCockpit",				true );
 	vr_vibration					 = config_get_bool( "VRVibration",				true );
 	vr_steady_mirror				 = config_get_bool( "VRSteadyMirror",			true );
+	vr_invert_pitch					 = config_get_bool( "VRInvertPitch",			false );
+	vr_leftorium					 = config_get_bool( "VRLeftorium",				false );
+	vr_swap_sticks					 = config_get_bool( "VRSwapSticks",				false );
 #endif
 
 	memset( MyPickupValid, 0, sizeof(MyPickupValid) );
@@ -9619,6 +9628,9 @@ void SetGamePrefs( void )
 		config_set_bool( "VRHudCockpit",	vr_hud_cockpit );
 		config_set_bool( "VRVibration",		vr_vibration );
 		config_set_bool( "VRSteadyMirror",	vr_steady_mirror );
+		config_set_bool( "VRInvertPitch",	vr_invert_pitch );
+		config_set_bool( "VRLeftorium",		vr_leftorium );
+		config_set_bool( "VRSwapSticks",	vr_swap_sticks );
 	}
 #endif
 
