@@ -44,12 +44,12 @@ USERCONFIG default_config = {
 	0,								// roll control...
 	0.05F,							// autolevel rate
 //	{ num_keys, { key list [ num_keys ] } },
-	{ 2,	{ SDLK_DOWN	} },					// pitch forward
-	{ 2,	{ SDLK_UP	} },					// pitch backward
-	{ 2,	{ SDLK_LEFT	} },					// yaw left
-	{ 2,	{ SDLK_RIGHT	} },				// yaw right
-	{ 2,	{ SDLK_q		} },				// roll left
-	{ 2,	{ SDLK_e		} },				// roll right
+	{ 1,	{ SDLK_UP	} },					// pitch forward
+	{ 1,	{ SDLK_DOWN	} },					// pitch backward
+	{ 1,	{ SDLK_LEFT	} },					// yaw left
+	{ 1,	{ SDLK_RIGHT	} },				// yaw right
+	{ 1,	{ SDLK_q		} },				// roll left
+	{ 1,	{ SDLK_e		} },				// roll right
 	{ 1,	{ SDLK_1 } },						// slide left
 	{ 1,	{ SDLK_3 } },						// slide right
 	{ 1,	{ SDLK_KP_MINUS } },				// slide up
@@ -61,8 +61,8 @@ USERCONFIG default_config = {
 	{ 1,	{ SDLK_s	} },					// turbo
 	{ 0, {}  },										// cruise faster
 	{ 0, {}  },										// cruise slower
-	{ 2,	{ LEFT_MOUSE } },					// fire primary
-	{ 2,	{ RIGHT_MOUSE } },					// fire secondary
+	{ 1,	{ LEFT_MOUSE } },					// fire primary
+	{ 1,	{ RIGHT_MOUSE } },					// fire secondary
 	{ 1,	{ SDLK_b } },						// fire mine
 	{ 1,	{ SDLK_PAGEDOWN } },					// select next primary
 	{ 1,	{ SDLK_PAGEUP } },					// select prev primary
@@ -152,124 +152,10 @@ USERCONFIG default_config = {
 };
 
 
-USERCONFIG my_controls = {
-	"Player",						// player name
-	0,								// bike (0=Lokasenna)
-	1,								// bike computer ( 1 = Brenda )
-	0.6F,							// mouse x sensitivity
-	0.6F,							// mouse y sensitivity
-	0,								// pilot control (pitch forward = down, backward = up)
-	0,								// roll control...
-	0.05F,							// autolevel rate
-//	{ num_keys, { key list [ num_keys ] } },
-	{ 2,	{ SDLK_UP	} },	// pitch forward
-	{ 2,	{ SDLK_DOWN	} },	// pitch backward
-	{ 2,	{ SDLK_LEFT	} },	// yaw left
-	{ 2,	{ SDLK_RIGHT	} },	// yaw right
-	{ 2,	{ SDLK_q		} },	// roll left
-	{ 2,	{ SDLK_e		} },	// roll right
-	{ 1,	{ SDLK_1 } },					// slide left
-	{ 1,	{ SDLK_3 } },					// slide right
-	{ 1,	{ SDLK_KP_MINUS } },					// slide up
-	{ 1,	{ SDLK_KP_PLUS } },						// slide down
-	{ 1,	{ SDLK_a	} },						// forward
-	{ 1,	{ SDLK_z	} },						// backward
-	{ 1,	{ SDLK_LALT	} },					// slide
-	{ 0, {}  },										// roll
-	{ 1,	{ SDLK_s	} },						// turbo
-	{ 0, {}  },										// cruise faster
-	{ 0, {}  },										// cruise slower
-	{ 2,	{ LEFT_MOUSE	} },	// fire primary
-	{ 2,	{ RIGHT_MOUSE	} },		// fire secondary
-	{ 1,	{ SDLK_b } },						// fire mine
-	{ 1,	{ SDLK_PAGEDOWN } },						// select next primary
-	{ 1,	{ SDLK_PAGEUP } },					// select prev primary
-	{ 1,	{ SDLK_HOME } },						// select next secondary
-	{ 1,	{ SDLK_END } },						// select prev secondary
-	{ 1,	{ SDLK_r } },						// select rear view
-	{ 1,	{ SDLK_h } },						// toggle headlights
-	{
-		{ 1, { SDLK_BACKQUOTE } },				// select primary #1
-		{ 1, { SDLK_1	} },					// select primary #2
-		{ 1, { SDLK_4	} },					// select primary #3
-		{ 1, { SDLK_3	} },					// select primary #4
-		{ 1, { SDLK_2	} },					// select primary #5
-		{ 1, { SDLK_5	} },					// select primary #6
-	},
-	{
-		{ 1, { SDLK_6 } },						// select secondary #1
-		{ 1, { SDLK_7 } },						// select secondary #2
-		{ 0, {} 	},									// select secondary #3 (thief missile -- not used)
-		{ 1, { SDLK_8 } },						// select secondary #4
-		{ 1, { SDLK_9 } },						// select secondary #5
-		{ 1, { SDLK_0 } },						// select secondary #6
-		{ 1, { SDLK_MINUS } },					// select secondary #7
-		{ 1, { SDLK_y } },						// select secondary #8
-		{ 1, { SDLK_u } },						// select secondary #9
-		{ 1, { SDLK_i } },						// select secondary #10
-		{ 0, {}  },									// select secondary #11 (spider mine -- not used)
-	},
-	{ 0, {}  },										// drop primary
-	{ 0, {}  },										// drop secondary
-	{ 0, {}  },										// drop shield
-	{ 0, {}  },										// drop ammo
-	{ 0, {}  },										// show messages
-	{ 0, {} },										// show statistics
-	{ 0, {} },										// show network info
-	{ 1, { SDLK_RETURN } },					// send text message
-#ifdef PLAYER_SPEECH_TAUNTS
-	{ 0, {}  },					// send speech taunt
-#endif
-
-	// weapon selection priorities and orders
-	{
-			5,							// primary #1 priority
-			2,							// primary #2 priority
-			3,							// primary #3 priority
-			4,							// primary #4 priority
-			1,							// primary #5 priority
-			0,							// primary #6 priority
-	},
-	{
-			5,							// primary order #1 
-			4,							// primary order #2 
-			1,							// primary order #3 
-			2,							// primary order #4 
-			3,							// primary order #5 
-			0,							// primary order #6 
-	},
-	{
-			6,							// secondary #1 priority
-			5,							// secondary #2 priority
-			-1,							// secondary #3 priority
-			1,							// secondary #4 priority
-			3,							// secondary #5 priority
-			2,							// secondary #6 priority
-			0,							// secondary #7 priority
-			8,							// secondary #8 priority
-			7,							// secondary #9 priority
-			6,							// secondary #10 priority
-			-1,							// secondary #11 priority
-	},
-	{
-			6,							// secondary order #1 
-			3,							// secondary order #2 
-			5,							// secondary order #3 
-			4,							// secondary order #4 
-			1,							// secondary order #5 
-			0,							// secondary order #6 
-			9,							// secondary order #7 
-			8,							// secondary order #8 
-			7,							// secondary order #9 
-			-1,							// secondary order #10
-			-1,							// secondary order #11
-	},
-
-	"you ugly son of a bitch...",		// taunt 1 ( F9 )
-	"Time to die...",					// taunt 2 ( F10 )
-	"I will tear your soul apart...",	// taunt 3 ( F11 )
-};
-
+// the live controls of the current pilot. There is only one table of default
+// controls (default_config above): GetDefaultPilot() copies it in here before
+// reading the pilot file, so new pilots and "restore defaults" always agree.
+USERCONFIG my_controls;
 
 USERCONFIG *player_config = &my_controls;
 
@@ -352,6 +238,7 @@ read_keydef( FILE *f, USERKEY *k, char *last_token )
 	VIRTUALKEYMAP *vk;
 	int j;
 	int keys_defined;
+	int tokens;
 
 	char line[256];
 	char * ptr = line;
@@ -360,25 +247,37 @@ read_keydef( FILE *f, USERKEY *k, char *last_token )
 	init_key_map();
 
 	keys_defined = 0;
+	tokens = 0;
+	save_key = *k; // save old definition in case of failure
 	for ( j = 0; j < MAX_KEYS_PER_CONTROL; j++ )
-	{
-		save_key.key[ j ] = k->key[ j ]; // save old definition in case of failure
 		k->key[ j ] = 0; // clear any existing key definitions
-	}
 	while ( ptr && sscanf( ptr, " %80s", last_token ) == 1 )
 	{
 		int i;
+
+		tokens++;
+		ptr = (strstr(ptr,last_token)+strlen(last_token));
+
+		// look the name up; when nothing matches the loop runs off the end,
+		// so test for a match rather than vk (which would be left on the
+		// last entry, "mouse_254", binding every unknown name to it)
+		vk = NULL;
 		for ( i = 0; i < KEY_MAP_LAST; i++ )
 		{
-			vk = &vkey_map[i];
-			if(!vk->keycode || !vk->keyword)
+			if(!vkey_map[i].keycode || !vkey_map[i].keyword)
 				continue;
-			if(strcasecmp( last_token, vk->keyword ) == 0)
+			if(strcasecmp( last_token, vkey_map[i].keyword ) == 0)
+			{
+				vk = &vkey_map[i];
 				break;
+			}
 		}
 
-		if ( ! vk->keyword )
-			break;
+		if ( !vk )
+		{
+			DebugPrintf( "read_keydef: ignoring unknown key name '%s'\n", last_token );
+			continue;
+		}
 
 		for ( j = 0; j < MAX_KEYS_PER_CONTROL; j++ )
 		{
@@ -389,8 +288,6 @@ read_keydef( FILE *f, USERKEY *k, char *last_token )
 				break;
 			}
 		}
-
-		ptr = (strstr(ptr,last_token)+strlen(last_token));
 	}
 	last_token[0] = 0;
 
@@ -398,10 +295,15 @@ read_keydef( FILE *f, USERKEY *k, char *last_token )
 	{
 		k->keys = keys_defined;
 	}
+	else if ( !tokens )
+	{
+		// an empty line: the control was deliberately left unbound
+		k->keys = 0;
+	}
 	else
 	{
-		for ( j = 0; j < MAX_KEYS_PER_CONTROL; j++ )
-			k->key[ j ] = save_key.key[ j ];
+		// nothing usable on the line: keep the previous (default) binding
+		*k = save_key;
 	}
 
 	return keys_defined;
@@ -1378,17 +1280,11 @@ read_config( USERCONFIG *u, char *cfg_name )
 
 	}
 
-	// clear the memory in the passed in user config
-	memset( u, 0, sizeof( *u ) );
-
-	// since all config settings are now zero, any new additions to config structure
-	// must be initialised here, in order to be backwardly compatible with old config
-	// files...
-	u->invert_turn = 0;	
-	u->invert_pitch = 0;
-	u->mouse_x_sensitivity = 0.6F;
-	u->mouse_y_sensitivity = 0.6F;
-	u->send_msg.key[ 0 ] = SDLK_RETURN;
+	// start from the default config, so anything the file does not set
+	// (a control missing from an old or hand edited file, or one whose key
+	// names this build does not know) keeps its default instead of becoming
+	// a dead key
+	*u = default_config;
 
 	// reset all joystick settings
 	ReInitJoysticks();
@@ -1593,27 +1489,35 @@ const char *key_name( int keycode )
 }
 
 
+// name of a keyboard or mouse binding as written to the pilot file, or NULL
+// for joystick bindings (written in the JOYSTICK section) and for codes that
+// have no name, such as an empty key slot (0): printing those used to put
+// "(null)" in the file
+static const char *
+write_key_name( VirtualKeycode key )
+{
+	if ( KEY_ON_KEYBOARD( key ) || KEY_ON_MOUSE( key ) )
+		return key_fullname( key );
+	return NULL;
+}
+
+
+// the control is written even when it has no keyboard or mouse keys, so that
+// a deliberately unbound control stays unbound when read back instead of
+// picking up its default again (read_config starts from default_config)
 static void
 write_keydef( FILE *f, char *ctl_name, USERKEY *keydef )
 {
 	int k;
 
+	fprintf( f, "%s\t", ctl_name );
 	for ( k = 0; k < keydef->keys; k++ )
 	{
-		if ( KEY_ON_KEYBOARD( keydef->key[ k ] ) || KEY_ON_MOUSE( keydef->key[ k ] ) )
-			break;
+		const char *name = write_key_name( keydef->key[ k ] );
+		if ( name )
+			fprintf( f, "\t%s", name );
 	}
-
-	if ( k < keydef->keys )
-	{
-		fprintf( f, "%s\t", ctl_name );
-		for ( k = 0; k < keydef->keys; k++ )
-		{
-			if ( KEY_ON_KEYBOARD( keydef->key[ k ] ) || KEY_ON_MOUSE( keydef->key[ k ] ) )
-				fprintf( f, "\t%s", key_fullname( keydef->key[ k ] ) );
-		}
-		fprintf( f, "\n" );
-	}
+	fprintf( f, "\n" );
 }
 
 
@@ -1623,26 +1527,19 @@ write_keydef_indexed( FILE *f, char *ctl_name, USERKEY *keydef, int index )
 	int k;
 
 	keydef += index;
+
+	// the first number after SELECT1 represents the primary weapon in enum table
+	fprintf( f, "%s\t\t%d", ctl_name, index + 1 );
+
 	for ( k = 0; k < keydef->keys; k++ )
 	{
-		if ( KEY_ON_KEYBOARD( keydef->key[ k ] ) || KEY_ON_MOUSE( keydef->key[ k ] ) )
-			break;
+		const char *name = write_key_name( keydef->key[ k ] );
+
+		// each string after "SELECT1 n" represents the keys associated
+		if ( name )
+			fprintf( f, "\t%s", name );
 	}
-
-	if ( k < keydef->keys )
-	{
-		// the first number after SELECT1 represents the primary weapon in enum table
-		fprintf( f, "%s\t\t%d", ctl_name, index + 1 );
-
-		for ( k = 0; k < keydef->keys; k++ )
-		{
-			if ( KEY_ON_KEYBOARD( keydef->key[ k ] ) || KEY_ON_MOUSE( keydef->key[ k ] ) )
-
-				// each string after "SELECT1 n" represents the keys associated
-				fprintf( f, "\t%s", key_fullname( keydef->key[ k ] ) );
-		}
-		fprintf( f, "\n" );
-	}
+	fprintf( f, "\n" );
 }
 
 
