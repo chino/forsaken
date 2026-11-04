@@ -107,17 +107,58 @@ static void print_info ( void )
 	DebugPrintf("openal: info end\n");
 }
 
+static ALCdevice * opened_device = NULL;
+
+static int open_device( void * sem )
+{
+	opened_device = alcOpenDevice(NULL); // preferred device
+	SDL_SemPost( (SDL_sem *) sem );
+	return 0;
+}
+
+#define OPEN_DEVICE_TIMEOUT 5 // seconds
+
 bool sound_init( void )
 {
 	// TODO - disabling the ability to re-init sound system
 	// on ubuntu using "drivers = pulse" will handle in alcOpenDevice
 	// is there really even a reason we need to re-init sound?
 	static int initialized = 0;
+	SDL_sem * sem;
+	int i;
 	if(initialized)
-		return true;
+		return Context != NULL;
 	initialized = 1;
 
-	Device = alcOpenDevice(NULL); // preferred device
+	// alcOpenDevice can block for a long time when the sound server does not
+	// answer (pulse "Context did not connect: Timeout"), so open it in a
+	// thread and carry on without sound if it takes too long
+	sem = SDL_CreateSemaphore(0);
+	if( !sem ||
+#if SDL_VERSION_ATLEAST(2,0,0)
+		!SDL_CreateThread( open_device, "openal", sem )
+#else
+		!SDL_CreateThread( open_device, sem )
+#endif
+	)
+		return false;
+	for( i = 0; i < OPEN_DEVICE_TIMEOUT; i++ )
+	{
+		if( SDL_SemWaitTimeout( sem, 1000 ) == 0 )
+			break;
+		DebugPrintf("openal: waiting for the sound device...\n");
+		fprintf(stderr, "Waiting for the sound device...\n");
+	}
+	if( i == OPEN_DEVICE_TIMEOUT )
+	{
+		// the thread still owns sem and may open the device later, leak both
+		DebugPrintf("openal: no sound device after %d seconds, continuing without sound\n", OPEN_DEVICE_TIMEOUT);
+		fprintf(stderr, "No sound device after %d seconds, continuing without sound.\n", OPEN_DEVICE_TIMEOUT);
+		return false;
+	}
+	SDL_DestroySemaphore(sem);
+
+	Device = opened_device;
 	if(!Device)
 		return false;
 
