@@ -1769,3 +1769,194 @@ write_config( USERCONFIG *u, char *cfg_name )
 
 	return 1;
 }
+
+#ifndef LUA
+
+// plain C reader/writer of the "key = value" files that scripts/config.lua uses
+
+#include "file.h"
+#include "lua_config.h"
+
+#ifdef DEBUG_ON
+#define CONFIG_PATH "configs/debug.txt"
+#else
+#define CONFIG_PATH "configs/main.txt"
+#endif
+
+#define MAX_CONFIG_VARS 256
+
+typedef struct {
+	char key[64];
+	char type; // 's'tring, 'b'oolean or 'n'umber
+	char val[256];
+} CONFIGVAR;
+
+static CONFIGVAR config_vars[ MAX_CONFIG_VARS ];
+static int num_config_vars;
+
+static CONFIGVAR * config_var( const char * opt, bool create )
+{
+	int i;
+	for( i = 0; i < num_config_vars; i++ )
+		if( strcmp( config_vars[i].key, opt ) == 0 )
+			return &config_vars[i];
+	if( !create || num_config_vars == MAX_CONFIG_VARS || strlen( opt ) >= sizeof( config_vars[0].key ) )
+		return NULL;
+	strcpy( config_vars[num_config_vars].key, opt );
+	return &config_vars[num_config_vars++];
+}
+
+static void config_set( const char * opt, char type, const char * val, size_t len )
+{
+	CONFIGVAR * v = config_var( opt, true );
+	if( !v )
+		return;
+	if( len >= sizeof( v->val ) )
+		len = sizeof( v->val ) - 1;
+	v->type = type;
+	memcpy( v->val, val, len );
+	v->val[len] = 0;
+}
+
+void config_load( void )
+{
+	char line[ 512 ], val[ 256 ];
+	FILE * f;
+	touch_file( CONFIG_PATH );
+	f = file_open( CONFIG_PATH, "rb" );
+	if( !f )
+		return;
+	while( fgets( line, sizeof( line ), f ) )
+	{
+		char key[ 64 ], * p;
+		size_t len = 0;
+		int n = 0;
+		if( sscanf( line, " %63[A-Za-z0-9_] = %n", key, &n ) != 1 || !n )
+			continue;
+		p = line + n;
+		if( *p == '"' )
+		{
+			for( p++; *p && *p != '"' && len < sizeof( val ) - 1; p++ )
+			{
+				if( *p == '\\' && p[1] )
+				{
+					p++;
+					if( *p == 'r' )
+						*p = '\r';
+					else if( *p == 'n' )
+						*p = '\n';
+					else if( *p == 't' )
+						*p = '\t';
+				}
+				val[ len++ ] = *p;
+			}
+			config_set( key, 's', val, len );
+		}
+		else if( strncmp( p, "true", 4 ) == 0 )
+			config_set( key, 'b', "1", 1 );
+		else if( strncmp( p, "false", 5 ) == 0 )
+			config_set( key, 'b', "0", 1 );
+		else
+			config_set( key, 'n', p, strcspn( p, " \t\r\n" ) );
+	}
+	fclose( f );
+}
+
+static int config_cmp( const void * a, const void * b )
+{
+	return strcmp( ((CONFIGVAR *) a)->key, ((CONFIGVAR *) b)->key );
+}
+
+int config_save( void )
+{
+	int i;
+	char * c;
+	FILE * f = file_open( CONFIG_PATH, "wb" );
+	if( !f )
+		return 1;
+	qsort( config_vars, num_config_vars, sizeof( CONFIGVAR ), config_cmp );
+	for( i = 0; i < num_config_vars; i++ )
+	{
+		fprintf( f, "%s = ", config_vars[i].key );
+		if( config_vars[i].type == 's' )
+		{
+			fputc( '"', f );
+			for( c = config_vars[i].val; *c; c++ )
+			{
+				if( *c == '\r' )
+					fputs( "\\r", f );
+				else if( *c == '"' || *c == '\\' || *c == '\n' )
+					fprintf( f, "\\%c", *c );
+				else
+					fputc( *c, f );
+			}
+			fputc( '"', f );
+		}
+		else if( config_vars[i].type == 'b' )
+			fputs( config_vars[i].val[0] == '1' ? "true" : "false", f );
+		else
+			fputs( config_vars[i].val, f );
+		fputs( "\r\n", f );
+	}
+	fclose( f );
+	return 0;
+}
+
+int config_get_bool( const char * opt, int _default )
+{
+	CONFIGVAR * v = config_var( opt, false );
+	if( !v )
+		return _default;
+	return v->type != 'b' || v->val[0] == '1';
+}
+
+int config_get_int( const char * opt, int _default )
+{
+	CONFIGVAR * v = config_var( opt, false );
+	if( !v )
+		return _default;
+	return (int) strtod( v->val, NULL );
+}
+
+float config_get_float( const char * opt, float _default )
+{
+	CONFIGVAR * v = config_var( opt, false );
+	if( !v )
+		return _default;
+	return (float) strtod( v->val, NULL );
+}
+
+void config_get_strncpy( char * dest, size_t size, const char * opt, char * _default )
+{
+	CONFIGVAR * v = config_var( opt, false );
+	strncpy( dest, ( v && v->type != 'b' ) ? v->val : _default, size );
+}
+
+void config_set_int( const char * opt, int i )
+{
+	char buf[ 32 ];
+	config_set( opt, 'n', buf, snprintf( buf, sizeof( buf ), "%d", i ) );
+}
+
+void config_set_float( const char * opt, float f )
+{
+	char buf[ 32 ];
+	config_set( opt, 'n', buf, snprintf( buf, sizeof( buf ), "%.14g", (double) f ) );
+}
+
+void config_set_bool( const char * opt, int i )
+{
+	config_set( opt, 'b', i ? "1" : "0", 1 );
+}
+
+void config_set_str( const char * opt, char * str )
+{
+	config_set( opt, 's', str, strlen( str ) );
+}
+
+void config_set_strn( const char * opt, char * str, size_t size )
+{
+	config_set( opt, 's', str, strnlen( str, size ) );
+}
+
+#endif /* LUA */

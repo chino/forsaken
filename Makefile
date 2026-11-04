@@ -63,12 +63,17 @@ endif
 # ProjectX Specific
 #
 
-# some systems use lua5.1
-LUA=$(shell pkg-config lua && echo lua || echo lua5.1)
 MACOSX=$(shell uname -a | grep -qi darwin && echo 1 || echo 0)
 
-# debian/ubuntu split luasocket's mime module into its own package
-LUA_MIME=$(shell pkg-config --exists $(LUA)-mime && echo $(LUA)-mime)
+# lua scripting (config loader, public game list, bots)
+LUA=0
+ifeq ($(LUA),1)
+  # some systems use lua5.1
+  LUA_PKG=$(shell pkg-config lua && echo lua || echo lua5.1)
+  # debian/ubuntu split luasocket's mime module into its own package
+  LUA_MIME=$(shell pkg-config --exists $(LUA_PKG)-mime && echo $(LUA_PKG)-mime)
+  LUA_LIBS=$(LUA_PKG) $(LUA_PKG)-socket $(LUA_MIME)
+endif
 
 # which version of sdl do you want to ask pkgconfig for ?
 SDL=1
@@ -85,7 +90,7 @@ $(if $(shell test "$(GL)" -ge 3 -a "$(SDL)" -lt 2 && echo fail), \
      $(error "GL >= 3 only supported with SDL >= 2"))
 
 # library headers
-CFLAGS+= `pkg-config --cflags $(SDL_) $(LUA) $(LUA)-socket libenet libpng zlib openal`
+CFLAGS+= `pkg-config --cflags $(SDL_) $(LUA_LIBS) libenet libpng zlib openal`
 ifeq ($(MACOSX),1)
   CFLAGS += -DMACOSX
 endif
@@ -98,7 +103,7 @@ ifeq ($(STATIC),1)
   LIB+= -Wl,-dn
   PKG_CFG_OPTS= --static
 endif
-LIB+= `pkg-config $(PKG_CFG_OPTS) --libs $(LUA) $(LUA)-socket $(LUA_MIME) libenet libpng zlib openal` -lm
+LIB+= `pkg-config $(PKG_CFG_OPTS) --libs $(LUA_LIBS) libenet libpng zlib openal` -lm
 ifeq ($(STATIC),1)
   LIB+= -Wl,-dy
 endif
@@ -137,12 +142,19 @@ ifeq ($(RENDER_DISABLED),1)
 else
   CFLAGS+= -DGL=$(GL)
 endif
-CFLAGS+= -DNET_ENET_2 -DBSP -DLUA_USE_APICHECK -DTEXTURE_PNG -DSOUND_SUPPORT -DSOUND_OPENAL
+CFLAGS+= -DNET_ENET_2 -DBSP -DTEXTURE_PNG -DSOUND_SUPPORT -DSOUND_OPENAL
 ifeq ($(DEBUG),1)
   CFLAGS+= -DDEBUG_ON -DDEBUG_COMP -DDEBUG_SPOTFX_SOUND -DDEBUG_VIEWPORT
 endif
 
+ifeq ($(LUA),1)
+  CFLAGS+= -DLUA -DLUA_USE_APICHECK
+endif
+
 ifeq ($(BOT),1)
+  ifneq ($(LUA),1)
+    X:=$(error BOT=1 requires LUA=1)
+  endif
   CFLAGS+= -DLUA_BOT
 endif
 
@@ -153,6 +165,9 @@ endif
 
 INC=$(wildcard *.h)
 SRC=$(wildcard *.c)
+ifneq ($(LUA),1)
+  SRC:=$(filter-out lua_%.c,$(SRC))
+endif
 OBJ=$(patsubst %.c,%.o,$(SRC))
 
 # allows user to override settings
@@ -173,7 +188,7 @@ $(BIN): $(OBJ)
 $(OBJ): $(INC)
 
 clean:
-	$(RM) $(OBJ) $(BIN)
+	$(RM) *.o $(BIN)
 
 check:
 	@echo
@@ -195,6 +210,7 @@ check:
 	@echo "RENDER_DISABLED = $(RENDER_DISABLED)"
 	@echo "INPUT_DISABLED = $(INPUT_DISABLED)"
 	@echo "LUA = $(LUA)"
+	@echo "LUA_PKG = $(LUA_PKG)"
 	@echo "SDL = $(SDL)"
 	@echo "SDL_ = $(SDL_)"
 	@echo

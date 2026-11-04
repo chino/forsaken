@@ -9,7 +9,11 @@
 #include "file.h"
 #include "net.h"
 #include "title.h"
+#ifdef LUA
 #include "lua_common.h"
+#else
+#include "lua_config.h"
+#endif
 #include "sfx.h"
 #include <SDL.h>
 #include "input.h"
@@ -96,11 +100,15 @@ static bool parse_chdir( char *cli )
 // checks for all critical folders
 //
 
+#ifdef LUA
 #define CRITICAL_FOLDERS 4
+#else
+#define CRITICAL_FOLDERS 3 // scripts are only used by lua
+#endif
 static bool missing_folders( void )
 {
 	int x = 0;
-	char* folders[CRITICAL_FOLDERS] = {"Configs","Data","Pilots","Scripts"};
+	char* folders[] = {"Configs","Data","Pilots","Scripts"};
 	for( x = 0; x < CRITICAL_FOLDERS; x++ )
 		if( ! is_folder(folders[x]) )
 		{
@@ -374,8 +382,10 @@ void CleanUpAndPostQuit(void)
 	// we dont control the cursor anymore
 	input_grab( false );
 
+#ifdef LUA
 	// close up lua
 	lua_shutdown();
+#endif
 
 	// cleanup networking
 	network_cleanup();
@@ -471,9 +481,13 @@ static bool AppInit( char * lpCmdLine )
 	if(missing_folders())
 		return false;
 
+#ifdef LUA
 	// startup lua
 	if( lua_init() != 0 )
 		return false;
+#else
+	config_load();
+#endif
 
 	// copy game settings from config
 	GetGamePrefs();
