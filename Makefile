@@ -147,9 +147,29 @@ ifeq ($(INPUT_DISABLED),1)
   CFLAGS+= -DINPUT_DISABLED
 endif
 
+# OpenXR head mounted display support (make VR=1). Needs the OpenXR loader
+# (libopenxr-dev); the game only uses it when started with -vr, and falls
+# back to the desktop when there is no runtime or headset. See docs/VR.md.
+VR=0
+ifeq ($(VR),1)
+  ifeq ($(RENDER_DISABLED),1)
+    $(error "VR=1 needs a GL renderer")
+  endif
+  CFLAGS += -DVR_OPENXR `pkg-config --cflags openxr`
+  LIB += `pkg-config --libs openxr`
+  ifneq ($(MINGW),1)
+    ifneq ($(MACOSX),1)
+      LIB += `pkg-config --libs x11`
+    endif
+  endif
+endif
+
 
 INC=$(wildcard *.h)
 SRC=$(wildcard *.c)
+ifneq ($(VR),1)
+  SRC:=$(filter-out vr_openxr.c,$(SRC))
+endif
 OBJ=$(patsubst %.c,%.o,$(SRC))
 
 # allows user to override settings
@@ -170,7 +190,7 @@ $(BIN): $(OBJ)
 $(OBJ): $(INC)
 
 clean:
-	$(RM) $(OBJ) $(BIN)
+	$(RM) $(OBJ) vr_openxr.o $(BIN)
 
 check:
 	@echo
@@ -194,6 +214,7 @@ check:
 	@echo "LUA = $(LUA)"
 	@echo "SDL = $(SDL)"
 	@echo "SDL_ = $(SDL_)"
+	@echo "VR = $(VR)"
 	@echo
 	@echo "CC = $(CC)"
 	@echo "BIN = $(BIN)"
