@@ -145,6 +145,9 @@ float vr_swivel_take( void );
 // of following every movement of the head (VRSteadyMirror)
 extern bool vr_steady_mirror;
 
+// the desktop window between full screen and a window, keeping the GL context
+void vr_toggle_fullscreen( void );
+
 // the pause menu and HUD are hidden to look at the paused scene
 extern bool vr_photo_mode;
 

@@ -8894,6 +8894,12 @@ void MenuGoFullScreen( MENUITEM *Item )
 
 	bIgnoreWM_SIZE = true;
 
+#ifdef VR_OPENXR
+	// in place: a new video mode would take the GL context the headset holds
+	if( vr_active() )
+		vr_toggle_fullscreen();
+	else
+#endif
     RenderModeSelect( render_info.CurrMode, !render_info.fullscreen, render_info.vsync );
 
 	// user goes into window mode to do something else
