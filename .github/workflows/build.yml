@@ -1,0 +1,53 @@
+# Build the game against the distribution's own libraries for each
+# supported SDL / GL combination so breakage shows up on every push.
+
+name: Build
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  linux:
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          - "SDL=1 GL=1"
+          - "SDL=2 GL=1"
+          - "SDL=2 GL=2"
+          - "SDL=2 GL=3"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential pkg-config \
+            libsdl1.2-dev libsdl2-dev \
+            liblua5.1-0-dev lua-socket-dev \
+            libenet-dev libpng-dev zlib1g-dev libopenal-dev \
+            libgl-dev libglu1-mesa-dev
+
+      - name: Build (${{ matrix.config }})
+        run: make -j"$(nproc)" ${{ matrix.config }}
+
+  flatpak:
+    runs-on: ubuntu-24.04
+    container:
+      image: ghcr.io/flathub-infra/flatpak-github-actions:freedesktop-24.08
+      options: --privileged
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build flatpak
+        uses: flatpak/flatpak-github-actions/flatpak-builder@v6
+        with:
+          bundle: forsaken.flatpak
+          manifest-path: packaging/flatpak/io.github.ForsakenX.Forsaken.yml
+          cache-key: flatpak-builder-${{ github.sha }}
