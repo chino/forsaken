@@ -14791,10 +14791,14 @@ void NextLevelOrGameComplete( MENUITEM *Item )
 	 case GAMECOMPLETE_NotComplete:
 		 MenuChangeEx( &MENU_NEW_BetweenLevels );
 		 return;
+	 // The end scene sequence (STATUS_WaitingToStartEndGameSequence) only
+	 // released the title view and switched to STATUS_Title without setting
+	 // the title up again, so the next frame rendered freed title models and
+	 // the game crashed. Show the game complete message instead, which goes
+	 // back to the title properly in AfterSpecialMessage().
 	 case GAMECOMPLETE_WithoutAllCrystals:
-		 MenuChangeEx( &MENU_NEW_GeneralLoading );
-		 MyGameStatus = STATUS_WaitingToStartEndGameSequence;
-		 return;
+		 strcpy( GameCompleteText, GameCompleteWithoutCrystals );
+		 break;
 	 case GAMECOMPLETE_Cheated:
 		 strcpy( GameCompleteText, GameCompleteWithCheating );
 		 break;
@@ -14802,13 +14806,11 @@ void NextLevelOrGameComplete( MENUITEM *Item )
 		 strcpy( GameCompleteText, GameCompleteGotAllCrystalsSoFar );
 		 break;
 	 case GAMECOMPLETE_WithAllCrystals:
-		 MenuChangeEx( &MENU_NEW_GeneralLoading );
-		 MyGameStatus = STATUS_WaitingToStartEndGameSequence;
-		 return;
+		 strcpy( GameCompleteText, GameCompleteWithAllCrystals );
+		 break;
 	 case GAMECOMPLETE_WithAllCrystalsExceptLast:
-		 MenuChangeEx( &MENU_NEW_GeneralLoading );
-		 MyGameStatus = STATUS_WaitingToStartEndGameSequence;
-		 return;
+		 strcpy( GameCompleteText, GameCompleteWithAllCrystalsExceptLast );
+		 break;
 	 case GAMECOMPLETE_AdditionalLevels:
 		 strcpy( GameCompleteText, GameCompleteAdditionalLevels );
 		 break;
