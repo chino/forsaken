@@ -299,10 +299,8 @@ static const char *default_vertex_shader =
 	"{\n"
 	"    if (orthographic)\n"
 	"    {\n"
-// TODO - broken in GL 2
-#if 0
-	"        gl_Position = ortho_proj * tlpos;\n"
-#endif
+	// tlpos is a pretransformed (sx, sy, sz, rhw) vertex, so drop rhw
+	"        gl_Position = ortho_proj * vec4(tlpos.xyz, 1.0);\n"
 	"    }\n"
 	"    else\n"
 	"    {\n"
