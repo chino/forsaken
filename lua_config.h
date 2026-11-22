@@ -33,6 +33,9 @@
 #ifndef LUA_CONFIG_H
 #define LUA_CONFIG_H
 
+#ifndef LUA
+void config_load( void );
+#endif
 int config_save( void );
 
 int config_get_int(const char *opt, int _default);

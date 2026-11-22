@@ -85,7 +85,7 @@
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <WholeProgramOptimization>true</WholeProgramOptimization>
       <AdditionalIncludeDirectories>.\;include;;lib\enet\include;lib\lua\include;lib\include;ai\aiinclude;lib\libzlib;lib\libpng;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WIN32;SOUND_SUPPORT;SOUND_OPENAL;TEXTURE_PNG;OPENGL;OPENGL1;NET_ENET_2;_CRT_SECURE_NO_WARNINGS;_CRT_SECURE_NO_DEPRECATE;BSP;LUA_USE_APICHECK;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;SOUND_SUPPORT;SOUND_OPENAL;TEXTURE_PNG;OPENGL;OPENGL1;NET_ENET_2;_CRT_SECURE_NO_WARNINGS;_CRT_SECURE_NO_DEPRECATE;BSP;LUA;LUA_USE_APICHECK;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SmallerTypeCheck>false</SmallerTypeCheck>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <AdditionalOptions> /J</AdditionalOptions>
@@ -144,7 +144,7 @@
       <Optimization>Disabled</Optimization>
       <InlineFunctionExpansion>Default</InlineFunctionExpansion>
       <AdditionalIncludeDirectories>.\;include;;lib\enet\include;lib\lua\include;lib\include;ai\aiinclude;lib\libzlib;lib\libpng;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WIN32;SOUND_SUPPORT;SOUND_OPENAL;TEXTURE_PNG;OPENGL;OPENGL1;NET_ENET_2;_CRT_SECURE_NO_WARNINGS;_CRT_SECURE_NO_DEPRECATE;DEBUG_ON;DEBUG_COMP;DEBUG_SPOTFX_SOUND;BSP;DEBUG_VIEWPORT;LUA_USE_APICHECK;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;SOUND_SUPPORT;SOUND_OPENAL;TEXTURE_PNG;OPENGL;OPENGL1;NET_ENET_2;_CRT_SECURE_NO_WARNINGS;_CRT_SECURE_NO_DEPRECATE;DEBUG_ON;DEBUG_COMP;DEBUG_SPOTFX_SOUND;BSP;DEBUG_VIEWPORT;LUA;LUA_USE_APICHECK;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SmallerTypeCheck>false</SmallerTypeCheck>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <AdditionalOptions> /J</AdditionalOptions>
@@ -203,7 +203,7 @@
       <Optimization>Disabled</Optimization>
       <InlineFunctionExpansion>Default</InlineFunctionExpansion>
       <AdditionalIncludeDirectories>.\;include;;lib\enet\include;lib\lua\include;lib\include;ai\aiinclude;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WIN32;SOUND_SUPPORT;SOUND_OPENAL;NET_ENET_2;_CRT_SECURE_NO_WARNINGS;_CRT_SECURE_NO_DEPRECATE;DEBUG_ON;DEBUG_COMP;DEBUG_SPOTFX_SOUND;BSP;DEBUG_VIEWPORT;LUA_USE_APICHECK;D3D;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;SOUND_SUPPORT;SOUND_OPENAL;NET_ENET_2;_CRT_SECURE_NO_WARNINGS;_CRT_SECURE_NO_DEPRECATE;DEBUG_ON;DEBUG_COMP;DEBUG_SPOTFX_SOUND;BSP;DEBUG_VIEWPORT;LUA;LUA_USE_APICHECK;D3D;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SmallerTypeCheck>false</SmallerTypeCheck>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <AdditionalOptions> /J</AdditionalOptions>
