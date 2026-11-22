@@ -50,6 +50,7 @@ int   vr_turn_speed  = 100;
 bool  vr_auto_level  = false;
 bool  vr_ship_bob    = true;
 bool  vr_hud_cockpit = true;
+bool  vr_vibration   = true;
 
 // the panel the HUD and menus are drawn on, in metres
 #define PANEL_WIDTH	2.0f
@@ -285,7 +286,7 @@ void vr_unscale_rect( int * x, int * y, int * w, int * h, int * sh )
 	X( xrStringToPath ) X( xrCreateActionSet ) X( xrDestroyActionSet ) X( xrCreateAction ) \
 	X( xrSuggestInteractionProfileBindings ) X( xrAttachSessionActionSets ) \
 	X( xrSyncActions ) X( xrGetActionStateFloat ) X( xrGetActionStateBoolean ) \
-	X( xrGetActionStateVector2f )
+	X( xrGetActionStateVector2f ) X( xrApplyHapticFeedback )
 
 static PFN_xrGetInstanceProcAddr xrGetInstanceProcAddr;
 #define X( f ) static PFN_##f f;
@@ -419,6 +420,7 @@ enum {
 	ACT_MOVE, ACT_LOOK,
 	ACT_TRIGGER_L, ACT_TRIGGER_R, ACT_GRIP_L, ACT_GRIP_R,
 	ACT_A, ACT_B, ACT_X, ACT_Y, ACT_STICK_L, ACT_STICK_R, ACT_MENU,
+	ACT_BUZZ_L, ACT_BUZZ_R,
 	ACT_COUNT
 };
 
@@ -436,12 +438,15 @@ static const struct { const char * name, * desc; XrActionType type; } action_inf
 	{ "stick_left",    "Left stick click",  XR_ACTION_TYPE_BOOLEAN_INPUT },
 	{ "stick_right",   "Right stick click", XR_ACTION_TYPE_BOOLEAN_INPUT },
 	{ "menu",          "Menu",              XR_ACTION_TYPE_BOOLEAN_INPUT },
+	{ "buzz_left",     "Left vibration",    XR_ACTION_TYPE_VIBRATION_OUTPUT },
+	{ "buzz_right",    "Right vibration",   XR_ACTION_TYPE_VIBRATION_OUTPUT },
 };
 
 typedef struct { int action; const char * path; } binding_t;
 
 #define L "/user/hand/left/input/"
 #define R "/user/hand/right/input/"
+#define BUZZ { ACT_BUZZ_L, "/user/hand/left/output/haptic" }, { ACT_BUZZ_R, "/user/hand/right/output/haptic" }
 
 static const binding_t bind_touch[] = {
 	{ ACT_MOVE, L "thumbstick" }, { ACT_LOOK, R "thumbstick" },
@@ -451,6 +456,7 @@ static const binding_t bind_touch[] = {
 	{ ACT_X, L "x/click" }, { ACT_Y, L "y/click" },
 	{ ACT_STICK_L, L "thumbstick/click" }, { ACT_STICK_R, R "thumbstick/click" },
 	{ ACT_MENU, L "menu/click" },
+	BUZZ,
 	{ -1, NULL }
 };
 
@@ -461,6 +467,7 @@ static const binding_t bind_index[] = {
 	{ ACT_A, R "a/click" }, { ACT_B, R "b/click" },
 	{ ACT_X, L "a/click" }, { ACT_MENU, L "b/click" },
 	{ ACT_STICK_L, L "thumbstick/click" }, { ACT_STICK_R, R "thumbstick/click" },
+	BUZZ,
 	{ -1, NULL }
 };
 
@@ -471,6 +478,7 @@ static const binding_t bind_wmr[] = {
 	{ ACT_A, R "trackpad/click" }, { ACT_B, R "menu/click" },
 	{ ACT_X, L "trackpad/click" }, { ACT_MENU, L "menu/click" },
 	{ ACT_STICK_L, L "thumbstick/click" }, { ACT_STICK_R, R "thumbstick/click" },
+	BUZZ,
 	{ -1, NULL }
 };
 
@@ -480,17 +488,20 @@ static const binding_t bind_vive[] = {
 	{ ACT_GRIP_L, L "squeeze/click" }, { ACT_GRIP_R, R "squeeze/click" },
 	{ ACT_STICK_L, L "trackpad/click" }, { ACT_STICK_R, R "trackpad/click" },
 	{ ACT_B, R "menu/click" }, { ACT_MENU, L "menu/click" },
+	BUZZ,
 	{ -1, NULL }
 };
 
 static const binding_t bind_simple[] = {
 	{ ACT_TRIGGER_L, L "select/click" }, { ACT_TRIGGER_R, R "select/click" },
 	{ ACT_B, R "menu/click" }, { ACT_MENU, L "menu/click" },
+	BUZZ,
 	{ -1, NULL }
 };
 
 #undef L
 #undef R
+#undef BUZZ
 
 static const struct { const char * profile; const binding_t * binds; } profiles[] = {
 	{ "/interaction_profiles/oculus/touch_controller",     bind_touch },
@@ -672,6 +683,20 @@ bool vr_read_controllers( vr_controllers_t * out )
 		menu_down_since = 0;
 	}
 	return true;
+}
+
+void vr_haptic( int hand, float amplitude, int ms )
+{
+	XrHapticActionInfo info = { XR_TYPE_HAPTIC_ACTION_INFO };
+	XrHapticVibration vib = { XR_TYPE_HAPTIC_VIBRATION };
+
+	if( !vr_vibration || !actions_ready || !xr_running || xr_state != XR_SESSION_STATE_FOCUSED )
+		return;
+	info.action   = xr_actions[ hand == VR_HAND_LEFT ? ACT_BUZZ_L : ACT_BUZZ_R ];
+	vib.amplitude = amplitude > 1.0f ? 1.0f : amplitude;
+	vib.duration  = (XrDuration) ms * 1000000;
+	vib.frequency = XR_FREQUENCY_UNSPECIFIED;
+	xrApplyHapticFeedback( xr_session, &info, (const XrHapticBaseHeader *) &vib );
 }
 
 /*===================================================================

@@ -53,7 +53,7 @@ Options:
 | `-vrscale:N`   | 30      | World units per metre. Bigger makes the world feel smaller. |
 | `-vrres:N`     | 100     | Eye resolution as a percentage of what the runtime recommends (10 to 400). |
 
-Comfort settings, in the config file:
+VR settings, in the config file:
 
 | Setting            | Default | |
 |--------------------|---------|-|
@@ -61,6 +61,7 @@ Comfort settings, in the config file:
 | `VRAutoLevel = true` | false | Ease the ship back level when you are not rolling, even if the pilot's own autoleveling is off. |
 | `VRShipBob = false`  | true  | Stop the gentle drift of your ship at rest, which moves the whole view in a headset. |
 | `VRHudCockpit = false` | true | Keep the HUD in front of your eyes wherever you look instead of fixed in the cockpit. |
+| `VRVibration = false`  | true | Stop the controllers buzzing when you fire (primary in the right hand, secondary in the left) and when you are hit (both, harder for a bigger hit). |
 
 ## What you get
 
@@ -120,4 +121,3 @@ simulated headset's left eye. The simulated device has no controllers.
 - Changing the video mode while in VR is not supported; restart instead.
 - The rear view and missile camera pictures are drawn on the HUD panel, so
   they are see-through like the rest of the HUD.
-- No haptics or controller aiming yet; see Forsaken VR for those.

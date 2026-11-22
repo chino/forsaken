@@ -115,6 +115,13 @@ bool vr_read_controllers( vr_controllers_t * out );
 // recentre the view on where the player is looking now
 void vr_recenter( void );
 
+// vibrate a controller: amplitude 0 to 1 for ms milliseconds
+enum { VR_HAND_LEFT, VR_HAND_RIGHT };
+void vr_haptic( int hand, float amplitude, int ms );
+
+// buzz when firing and when hit (VRVibration)
+extern bool vr_vibration;
+
 #endif // VR_OPENXR
 
 #endif // VR_INCLUDED

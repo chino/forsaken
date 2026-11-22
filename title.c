@@ -9334,6 +9334,7 @@ void GetGamePrefs( void )
 	vr_auto_level					 = config_get_bool( "VRAutoLevel",				false );
 	vr_ship_bob						 = config_get_bool( "VRShipBob",				true );
 	vr_hud_cockpit					 = config_get_bool( "VRHudCockpit",				true );
+	vr_vibration					 = config_get_bool( "VRVibration",				true );
 #endif
 
 	memset( MyPickupValid, 0, sizeof(MyPickupValid) );
