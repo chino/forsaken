@@ -25,12 +25,18 @@ int Num_Joysticks = 0;
 // Generic Routines
 //////////////////////////////////////////////
 
+static bool app_focused = true;
+
 void input_grab( bool grab )
 {
+	// never hold on to the mouse while another window has focus
+	if( !app_focused )
+		grab = false;
+
 	// 1. always acquire and hide mouse if in fullscreen
 	// 2. took this out cause a player asked... if there is issues add it back...
 	// 3. don't remember who asked or why ? need to enable again.
-	if( render_info.fullscreen )
+	if( render_info.fullscreen && app_focused )
 	{
 		input_grabbed = true;
 #if SDL_VERSION_ATLEAST(2,0,0)
@@ -143,15 +149,21 @@ void app_active( SDL_ActiveEvent * active )
 	bool resized = window -> event == SDL_WINDOWEVENT_RESIZED;
 	bool exposed = window -> event == SDL_WINDOWEVENT_EXPOSED;
 #else
-	bool gained = active -> gain;
-	bool lost   = ! gained;
+	// mouse entering/leaving the window is not a focus change
+	bool focus  = active -> state & ( SDL_APPINPUTFOCUS | SDL_APPACTIVE );
+	bool gained = focus && active -> gain;
+	bool lost   = focus && ! active -> gain;
 #endif
 
 	if( lost )
+	{
+		app_focused = false;
 		input_grab( false );
+	}
 
 	if( gained )
 	{
+		app_focused = true;
 		// fullscreen always has exclusive inputs
 		if( render_info.fullscreen )
 		{
