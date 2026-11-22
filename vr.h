@@ -39,6 +39,9 @@ extern int vr_turn_speed;
 extern bool vr_auto_level;
 extern bool vr_ship_bob;
 
+// the HUD stays put in the cockpit instead of following the head (VRHudCockpit)
+extern bool vr_hud_cockpit;
+
 // bring up OpenXR. call once the GL context is current.
 // returns false (having logged why) when the game should stay on the desktop.
 bool vr_init( void );

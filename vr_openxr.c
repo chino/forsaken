@@ -49,6 +49,7 @@ int   vr_res_scale   = 100;		// see -vrres in main.c
 int   vr_turn_speed  = 100;
 bool  vr_auto_level  = false;
 bool  vr_ship_bob    = true;
+bool  vr_hud_cockpit = true;
 
 // the panel the HUD and menus are drawn on, in metres
 #define PANEL_WIDTH	2.0f
@@ -1460,9 +1461,10 @@ void vr_end_frame( void )
 		quad.eyeVisibility = XR_EYE_VISIBILITY_BOTH;
 		if( eyes )
 		{
-			// the HUD goes where the head goes
+			// the HUD is fixed in the cockpit ahead of the ship's eye point,
+			// or goes where the head goes
 			quad.layerFlags = XR_COMPOSITION_LAYER_BLEND_TEXTURE_SOURCE_ALPHA_BIT;
-			quad.space = xr_head;
+			quad.space = vr_hud_cockpit ? xr_local : xr_head;
 			quad.pose.orientation.w = 1.0f;
 			quad.pose.position.z = -PANEL_DIST;
 			panel_placed = false;

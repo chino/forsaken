@@ -60,6 +60,7 @@ Comfort settings, in the config file:
 | `VRTurnSpeed = N`  | 100     | How fast the controllers turn and pitch the ship, as a percentage of the game's rate. |
 | `VRAutoLevel = true` | false | Ease the ship back level when you are not rolling, even if the pilot's own autoleveling is off. |
 | `VRShipBob = false`  | true  | Stop the gentle drift of your ship at rest, which moves the whole view in a headset. |
+| `VRHudCockpit = false` | true | Keep the HUD in front of your eyes wherever you look instead of fixed in the cockpit. |
 
 ## What you get
 
@@ -67,7 +68,9 @@ Comfort settings, in the config file:
   turns and moves inside the cockpit, on top of the ship's own six degrees of
   freedom.
 - The HUD and in-game menus on a panel about 2 m wide, 1.75 m in front of you,
-  that follows your head. Black is see-through, so the HUD floats over the world.
+  fixed in the cockpit: look around and it stays put, like the cockpit does
+  (`VRHudCockpit = false` makes it follow your head). Black is see-through, so
+  the HUD floats over the world.
 - Title screens and loading screens on the same panel, fixed in the room where
   it appeared, with the 3D title room behind it in stereo.
 - The desktop window mirrors the left eye with the HUD laid over it.
