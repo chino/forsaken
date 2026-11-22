@@ -121,9 +121,17 @@ bool sound_init( void )
 	if(!Device)
 		return false;
 
-	Context = alcCreateContext(Device,NULL);
-	if(!Context)
-		return false;
+	// the default of 256 sources runs out in big fights
+	{
+		ALCint attr[] = { ALC_MONO_SOURCES, 480, ALC_STEREO_SOURCES, 32, 0 };
+		ALCint mono = 0, stereo = 0;
+		Context = alcCreateContext(Device,attr);
+		if(!Context)
+			return false;
+		alcGetIntegerv(Device, ALC_MONO_SOURCES, 1, &mono);
+		alcGetIntegerv(Device, ALC_STEREO_SOURCES, 1, &stereo);
+		DebugPrintf("openal: %d mono + %d stereo sources\n", mono, stereo);
+	}
 
 	alcMakeContextCurrent(Context);
 
