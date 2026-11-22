@@ -3241,6 +3241,13 @@ void EvaluateMessage( network_player_t * from, DWORD len , BYTE * MsgPnt )
 				from->name, from->ip, from->port, msg_to_str(*MsgPnt), *MsgPnt );
 			lpTextMsg->Text[MAXTEXTMSG-1] = 0;
 		}
+		// the sender id is used to index Names[], TeamNumber[] etc
+		if( lpTextMsg->WhoIAm >= MAX_PLAYERS )
+		{
+			DebugPrintf("EvaluateMessage: from %s (%s:%d) %s (%d) dropping message with invalid player id %d\n",
+				from->name, from->ip, from->port, msg_to_str(*MsgPnt), *MsgPnt, lpTextMsg->WhoIAm );
+			return;
+		}
 		switch (lpTextMsg->TextMsgType)
 		{
 			case TEXTMSGTYPE_FlagDriftedIn:
@@ -3254,6 +3261,15 @@ void EvaluateMessage( network_player_t * from, DWORD len , BYTE * MsgPnt )
 				{
 					DebugPrintf("EvaluateMessage: from %s (%s:%d) %s (%d) dropping team message (%d) because not in team game\n",
 						from->name, from->ip, from->port, msg_to_str(*MsgPnt), *MsgPnt, lpTextMsg->TextMsgType );
+					return;
+				}
+				// TeamNumber is 255 until a player has been put on a team,
+				// TeamName[ 255 ] would read far past the end of the array
+				if( TeamNumber[ lpTextMsg->WhoIAm ] >= MAX_TEAMS )
+				{
+					DebugPrintf("EvaluateMessage: from %s (%s:%d) %s (%d) dropping team message (%d) because player %d has no team (%d)\n",
+						from->name, from->ip, from->port, msg_to_str(*MsgPnt), *MsgPnt, lpTextMsg->TextMsgType,
+						lpTextMsg->WhoIAm, TeamNumber[ lpTextMsg->WhoIAm ] );
 					return;
 				}
 			break;
