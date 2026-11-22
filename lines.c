@@ -51,6 +51,7 @@ void InitLines( void )
 		Lines[i].EndCol.B = 0;
 		Lines[i].Next = i + 1;
 		Lines[i].Prev = (u_int16_t) -1;
+		Lines[i].Used = false;
 	}
 	Lines[ MAXLINES-1 ].Next = (u_int16_t) -1;
 }
@@ -77,6 +78,8 @@ u_int16_t FindFreeLine( void )
 
 	FirstLineUsed = i;
 	FirstLineFree = Lines[i].Next;
+	Lines[i].Next = (u_int16_t) -1;
+	Lines[i].Used = true;
 
 	return i ;
 }
@@ -91,6 +94,13 @@ void KillUsedLine( u_int16_t i )
 {
 	u_int16_t	its_prev;
 	u_int16_t	its_next;
+
+	// InitLines() frees every line behind the back of whoever still holds
+	// a line number (debug toggles do this).  Killing such a stale line a
+	// second time would link it to itself and make the list loop forever.
+	if( i >= MAXLINES || !Lines[ i ].Used )
+		return;
+	Lines[ i ].Used = false;
 	
 	its_prev = Lines[ i ].Prev;
 	its_next = Lines[ i ].Next;

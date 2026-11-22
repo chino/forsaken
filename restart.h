@@ -67,6 +67,7 @@ void ActivateRestartPoint( u_int16_t NewStartPos, u_int16_t OldStartPos );
 FILE * SaveStartRestartPoints( FILE * fp );
 FILE * LoadStartRestartPoints( FILE * fp );
 void DisplayStartPoints( void );
+void HideStartPoints( void );
 
 #endif
 

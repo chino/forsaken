@@ -14,6 +14,7 @@
 #include <math.h>
 #include "mload.h"
 #include "models.h"
+#include "lines.h"
 
 #include "2dpolys.h"
 #include "primary.h"
@@ -64,6 +65,8 @@ RESTART		RestartPoints[ MAXRESTARTPOINTS ];
 RESTART	*	RestartPointGroups[ MAXGROUPS ];
 int16_t		NumRestartPointsPerGroup[ MAXGROUPS ];
 bool		ShowStartPoints = false;
+static u_int16_t	StartPointLines[ MAXSTARTPOSITIONS * 12 ];	// lines added by DisplayStartPoints()
+static int		NumStartPointLines = 0;
 
 ANIM_SEQ	RestartSeqs[] = {
 
@@ -251,6 +254,10 @@ bool LoadStartPoints( void )
 	u_int32_t		MagicNumber;
 	u_int32_t		VersionNumber;
 	int16_t		OllyPad;
+
+	// the level's lines are all reset on load, forget the old start point boxes
+	NumStartPointLines = 0;
+	ShowStartPoints = false;
 
 	Change_Ext( &LevelNames[ LevelNum ][ 0 ], &NewFilename[ 0 ], NewExt );
 
@@ -840,20 +847,55 @@ FILE * LoadStartRestartPoints( FILE * fp )
 	Input		:	u_int16_t Group
 	Output		:	Nothing
 ===================================================================*/
+static void AddStartPointLine( float x1, float y1, float z1, float x2, float y2, float z2, u_int16_t Group )
+{
+	u_int16_t line = CreateLine( x1, y1, z1, x2, y2, z2, Group );
+	if( line != (u_int16_t) -1 && NumStartPointLines < MAXSTARTPOSITIONS * 12 )
+		StartPointLines[ NumStartPointLines++ ] = line;
+}
+
 void DisplayStartPoints( void )
 {
 	int16_t	Count;
-	VECTOR	TopLeft;
-	VECTOR	BottomRight;
+	VECTOR	a;
+	VECTOR	b;
+	u_int16_t g;
 
-	for( Count = 0; Count < num_start_positions; Count++ )
+	HideStartPoints();
+
+	for( Count = 0; Count < num_start_positions && Count < MAXSTARTPOSITIONS; Count++ )
 	{
-		TopLeft.x = ( StartPositions[ Count ].Pos.x - ( SHIP_RADIUS ) );
-		TopLeft.y = ( StartPositions[ Count ].Pos.y - ( SHIP_RADIUS ) );
-		TopLeft.z = ( StartPositions[ Count ].Pos.z - ( SHIP_RADIUS ) );
-		BottomRight.x = ( StartPositions[ Count ].Pos.x + ( SHIP_RADIUS ) );
-		BottomRight.y = ( StartPositions[ Count ].Pos.y + ( SHIP_RADIUS ) );
-		BottomRight.z = ( StartPositions[ Count ].Pos.z + ( SHIP_RADIUS ) );
-		CreateBoundingBox( &TopLeft, &BottomRight, StartPositions[ Count ].Group );
+		a.x = ( StartPositions[ Count ].Pos.x - ( SHIP_RADIUS ) );
+		a.y = ( StartPositions[ Count ].Pos.y - ( SHIP_RADIUS ) );
+		a.z = ( StartPositions[ Count ].Pos.z - ( SHIP_RADIUS ) );
+		b.x = ( StartPositions[ Count ].Pos.x + ( SHIP_RADIUS ) );
+		b.y = ( StartPositions[ Count ].Pos.y + ( SHIP_RADIUS ) );
+		b.z = ( StartPositions[ Count ].Pos.z + ( SHIP_RADIUS ) );
+		g = StartPositions[ Count ].Group;
+
+		// same box as CreateBoundingBox() but remembering the lines
+		AddStartPointLine( a.x, a.y, a.z, b.x, a.y, a.z, g );
+		AddStartPointLine( b.x, a.y, a.z, b.x, b.y, a.z, g );
+		AddStartPointLine( b.x, b.y, a.z, a.x, b.y, a.z, g );
+		AddStartPointLine( a.x, b.y, a.z, a.x, a.y, a.z, g );
+		AddStartPointLine( a.x, a.y, b.z, b.x, a.y, b.z, g );
+		AddStartPointLine( b.x, a.y, b.z, b.x, b.y, b.z, g );
+		AddStartPointLine( b.x, b.y, b.z, a.x, b.y, b.z, g );
+		AddStartPointLine( a.x, b.y, b.z, a.x, a.y, b.z, g );
+		AddStartPointLine( a.x, a.y, a.z, a.x, a.y, b.z, g );
+		AddStartPointLine( b.x, a.y, a.z, b.x, a.y, b.z, g );
+		AddStartPointLine( b.x, b.y, a.z, b.x, b.y, b.z, g );
+		AddStartPointLine( a.x, b.y, a.z, a.x, b.y, b.z, g );
 	}
+}
+
+/*===================================================================
+	Procedure	:	Remove the lines added by DisplayStartPoints
+	Input		:	Nothing
+	Output		:	Nothing
+===================================================================*/
+void HideStartPoints( void )
+{
+	while( NumStartPointLines > 0 )
+		KillUsedLine( StartPointLines[ --NumStartPointLines ] );
 }
