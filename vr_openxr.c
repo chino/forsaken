@@ -1623,6 +1623,17 @@ static bool steady_cutout( float aspect, float * tc )
 	return true;
 }
 
+void vr_toggle_fullscreen( void )
+{
+#if SDL_VERSION_ATLEAST(2,0,0)
+	if( SDL_SetWindowFullscreen( render_info.window, render_info.fullscreen ? 0 : SDL_WINDOW_FULLSCREEN ) == 0 )
+#else
+	if( SDL_WM_ToggleFullScreen( render_info.screen ) )
+#endif
+		render_info.fullscreen = !render_info.fullscreen;
+	DebugPrintf( "openxr: desktop view %s\n", render_info.fullscreen ? "full screen" : "in a window" );
+}
+
 // the desktop window: the left eye, cut to the window's shape, with the
 // panel over it; or just the panel when there was no 3D scene
 static void draw_mirror( bool eyes )

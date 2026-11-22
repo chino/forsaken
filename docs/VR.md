@@ -83,7 +83,8 @@ Options > Visuals (both only shown in the headset), which also has **Recenter**:
   it appeared, with the 3D title room behind it in stereo.
 - The desktop window mirrors the left eye with the HUD laid over it, as a
   steady, level cut-out that follows your turns but not every small movement
-  of your head, which is easier to watch.
+  of your head, which is easier to watch. **Toggle Full Screen** (Shift+F12) switches it
+  between full screen and a window in place, without upsetting the headset.
 - **Recentre** by holding the menu button for about half a second.
 
 ## Controllers
