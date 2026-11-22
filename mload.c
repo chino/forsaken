@@ -1298,6 +1298,10 @@ ReleaseMloadheader( MLOADHEADER * Mloadheader )
 		{
 			FSReleaseRenderObject((RENDEROBJECT*)&(Mloadheader->Group[group].renderObject[i]));
 
+			if ( Mloadheader->Group[group].originalVerts[i] )
+				free( Mloadheader->Group[group].originalVerts[i] );
+			Mloadheader->Group[group].originalVerts[i] = NULL;
+
 			if ( Mloadheader->Group[group].colour_cell_pnt[i] )
 				free( Mloadheader->Group[group].colour_cell_pnt[i] );
 			Mloadheader->Group[group].colour_cell_pnt[i] = NULL;

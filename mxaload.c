@@ -808,6 +808,9 @@ void ReleaseMxaloadheader( MXALOADHEADER * Mxaloadheader )
 	    for (i = 0; i < Mxaloadheader->Group[group].num_execbufs; i++)
 		{
 			FSReleaseRenderObject(&Mxaloadheader->Group[group].renderObject[i]);
+			if ( Mxaloadheader->Group[group].originalVerts[i] )
+				free( Mxaloadheader->Group[group].originalVerts[i] );
+			Mxaloadheader->Group[group].originalVerts[i] = NULL;
 			if (Mxaloadheader->Group[group].poly_ptr[i])
 			{
 				free(Mxaloadheader->Group[group].poly_ptr[i]);

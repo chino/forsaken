@@ -1029,6 +1029,10 @@ ReleaseMxloadheader( MXLOADHEADER * Mxloadheader )
 
 			FSReleaseRenderObject(&Mxloadheader->Group[group].renderObject[i]);
 
+			if ( Mxloadheader->Group[group].originalVerts[i] )
+				free( Mxloadheader->Group[group].originalVerts[i] );
+			Mxloadheader->Group[group].originalVerts[i] = NULL;
+
 			if (Mxloadheader->Group[group].poly_ptr[i])
 			{
 				free(Mxloadheader->Group[group].poly_ptr[i]);
