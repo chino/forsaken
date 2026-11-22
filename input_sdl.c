@@ -724,11 +724,18 @@ static void vr_joystick_update( void )
 			input_buffer_send( j + DIK_JOYSTICK );
 	}
 
-	if( now.button[ VR_BUTTON_MENU ] && !last.button[ VR_BUTTON_MENU ] )
+	// in a level the left stick click hides the menu, to look around the
+	// paused scene; only the click brings it back
+	if( !CurrentMenu || ( MyGameStatus != STATUS_SinglePlayer && MyGameStatus != STATUS_Normal ) )
+		vr_photo_mode = false;
+	else if( now.button[ VR_BUTTON_LEFT_STICK ] && !last.button[ VR_BUTTON_LEFT_STICK ] )
+		vr_photo_mode = !vr_photo_mode;
+
+	if( now.button[ VR_BUTTON_MENU ] && !last.button[ VR_BUTTON_MENU ] && !vr_photo_mode )
 		vr_menu_key( SDLK_ESCAPE );
 
 	// leave the controls page alone while a button is being bound
-	if( CurrentMenu && MenuState != MENUSTATE_SelectKeydef )
+	if( CurrentMenu && MenuState != MENUSTATE_SelectKeydef && !vr_photo_mode )
 	{
 		if( ( now.button[ VR_BUTTON_A ] && !last.button[ VR_BUTTON_A ] ) ||
 		    ( now.button[ VR_BUTTON_RIGHT_TRIGGER ] && !last.button[ VR_BUTTON_RIGHT_TRIGGER ] ) )

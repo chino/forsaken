@@ -52,6 +52,7 @@ bool  vr_ship_bob    = true;
 bool  vr_hud_cockpit = true;
 bool  vr_vibration   = true;
 bool  vr_steady_mirror = true;
+bool  vr_photo_mode  = false;
 
 // the panel the HUD and menus are drawn on, in metres
 #define PANEL_WIDTH	2.0f

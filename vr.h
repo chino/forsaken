@@ -126,6 +126,9 @@ extern bool vr_vibration;
 // of following every movement of the head (VRSteadyMirror)
 extern bool vr_steady_mirror;
 
+// the pause menu and HUD are hidden to look at the paused scene
+extern bool vr_photo_mode;
+
 #endif // VR_OPENXR
 
 #endif // VR_INCLUDED

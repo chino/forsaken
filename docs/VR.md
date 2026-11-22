@@ -103,6 +103,7 @@ Default layout (Touch names):
 | Left / right stick click | Next primary / secondary weapon |
 | Menu (short press) | Escape (in-game menu) |
 | Menu (hold)        | Recentre |
+| Left stick click in the pause menu | Hide the menu and HUD to look at the paused level; click again to bring them back |
 
 In menus either stick moves, A or the right trigger chooses and B goes back.
 Keyboard, mouse and gamepads keep working as usual.
