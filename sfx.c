@@ -51,6 +51,7 @@ float ReturnDistanceVolumeVector( VECTOR *sfxpos, u_int16_t sfxgroup, VECTOR *li
 
 FILE *SaveAllSfx( FILE *fp ){return fp;}
 FILE *LoadAllSfx( FILE *fp ){return fp;}
+void LoadAllSfxDone( void ){}
 
 #else
 
@@ -67,6 +68,9 @@ FILE *LoadAllSfx( FILE *fp ){return fp;}
 #include "ships.h"
 #include "config.h"
 #include "util.h"
+#include "models.h"
+#include "spotfx.h"
+#include <stdint.h>
 
 #ifdef OPT_ON
 #pragma optimize( "gty", on )
@@ -2705,6 +2709,8 @@ void ProcessLoopingSfx( void )
 			}
 			if ( SpotSfxList[ i ].type == LOOPING_SFX_VariableGroup ) 
 			{
+				if ( !SpotSfxList[ i ].pos || !SpotSfxList[ i ].group )
+					continue;
 			 	Pos = *( SpotSfxList[ i ].pos ); 
 				Modify = SoundInfo[Ships[ Current_Camera_View ].Object.Group][*(SpotSfxList[ i ].group)];
 			}
@@ -2790,9 +2796,74 @@ void ProcessLoopingSfx( void )
 #pragma optimize( "", off )
 #endif
 
+// sfx save block: marker + version, moving sfx saved with an owner handle
+// instead of pointers (older saves wrote raw SPOT_SFX_LIST incl. pointers)
+#define SFX_SAVE_MARKER		0xFFFF
+#define SFX_SAVE_VERSION	1
+
+#define SFX_OWNER_None		0
+#define SFX_OWNER_Model		1
+#define SFX_OWNER_SpotFX	2
+
+extern MODEL Models[ MAXNUMOFMODELS ];
+extern SPOTFX SpotFX[ MAXSPOTFX ];
+extern MLOADHEADER Mloadheader;
+
+static u_int8_t LoadedOwnerType[ MAX_LOOPING_SFX ];
+static u_int16_t LoadedOwnerIndex[ MAX_LOOPING_SFX ];
+
+static void GetSfxOwner( SPOT_SFX_LIST *sfx, u_int8_t *type, u_int16_t *index )
+{
+	uintptr_t pos = (uintptr_t) sfx->pos, base, off;
+
+	*type = SFX_OWNER_None;
+	*index = 0;
+	if ( sfx->type != LOOPING_SFX_VariableGroup || !sfx->pos )
+		return;
+
+	base = (uintptr_t) &Models[ 0 ].Pos;
+	off = pos - base;
+	if ( pos >= base && off < sizeof( Models ) && !( off % sizeof( MODEL ) ) &&
+		sfx->group == &Models[ off / sizeof( MODEL ) ].Group )
+	{
+		*type = SFX_OWNER_Model;
+		*index = (u_int16_t) ( off / sizeof( MODEL ) );
+		return;
+	}
+
+	base = (uintptr_t) &SpotFX[ 0 ].Pos;
+	off = pos - base;
+	if ( pos >= base && off < sizeof( SpotFX ) && !( off % sizeof( SPOTFX ) ) &&
+		sfx->group == &SpotFX[ off / sizeof( SPOTFX ) ].Group )
+	{
+		*type = SFX_OWNER_SpotFX;
+		*index = (u_int16_t) ( off / sizeof( SPOTFX ) );
+	}
+}
+
+static bool SfxOwnerHasUid( u_int8_t type, u_int16_t index, u_int32_t uid )
+{
+	int i;
+
+	if ( type == SFX_OWNER_Model && index < MAXNUMOFMODELS )
+	{
+		for ( i = 0; i < MAXMODELSPOTFX; i++ )
+			if ( Models[ index ].SpotFXSFX_ID[ i ] == uid )
+				return true;
+	}
+	if ( type == SFX_OWNER_SpotFX && index < MAXSPOTFX )
+		return ( SpotFX[ index ].SoundFX_ID == uid );
+	return false;
+}
+
 FILE *SaveAllSfx( FILE *fp )
 {
 	u_int16_t num_active_sfx = 0;
+	u_int16_t marker = SFX_SAVE_MARKER;
+	u_int16_t version = SFX_SAVE_VERSION;
+	u_int16_t owner_index;
+	u_int8_t owner_type;
+	int32_t value;
 	int16_t i;
 
 	if( fp )
@@ -2802,13 +2873,30 @@ FILE *SaveAllSfx( FILE *fp )
 			if ( SpotSfxList[ i ].used )
 				num_active_sfx++;
 
-		// write out number of sfx...
+		fwrite( &marker, sizeof( u_int16_t ), 1, fp );
+		fwrite( &version, sizeof( u_int16_t ), 1, fp );
 		fwrite( &num_active_sfx, sizeof( u_int16_t ), 1, fp );
 
 		// write out sfx data...
 		for ( i = 0; i < MAX_LOOPING_SFX; i++ )
-			if ( SpotSfxList[ i ].used )
-				fwrite( &SpotSfxList[ i ], sizeof( SPOT_SFX_LIST ), 1, fp );
+		{
+			if ( !SpotSfxList[ i ].used )
+				continue;
+			GetSfxOwner( &SpotSfxList[ i ], &owner_type, &owner_index );
+			fwrite( &SpotSfxList[ i ].sfxindex, sizeof( int16_t ), 1, fp );
+			value = SpotSfxList[ i ].variant;
+			fwrite( &value, sizeof( int32_t ), 1, fp );
+			value = SpotSfxList[ i ].type;
+			fwrite( &value, sizeof( int32_t ), 1, fp );
+			fwrite( &SpotSfxList[ i ].fixedpos, sizeof( VECTOR ), 1, fp );
+			fwrite( &SpotSfxList[ i ].fixedgroup, sizeof( u_int16_t ), 1, fp );
+			fwrite( &SpotSfxList[ i ].freq, sizeof( float ), 1, fp );
+			fwrite( &SpotSfxList[ i ].vol, sizeof( float ), 1, fp );
+			fwrite( &SpotSfxList[ i ].Effects, sizeof( u_int16_t ), 1, fp );
+			fwrite( &SpotSfxList[ i ].uid, sizeof( u_int32_t ), 1, fp );
+			fwrite( &owner_type, sizeof( u_int8_t ), 1, fp );
+			fwrite( &owner_index, sizeof( u_int16_t ), 1, fp );
+		}
 
 		fwrite( &SfxUniqueID, sizeof( u_int32_t ), 1, fp );
 	}
@@ -2816,17 +2904,27 @@ FILE *SaveAllSfx( FILE *fp )
 	return( fp );
 }
 
-// TODO: this code loads pointers !!!!!!!!!!
-// apparrently this is somehow possible if you save/load from same binary
 FILE *LoadAllSfx( FILE *fp )
 {
 	u_int16_t num_active_sfx = 0;
+	u_int16_t version = 0;
+	u_int16_t owner_index;
+	u_int8_t owner_type;
+	SPOT_SFX_LIST sfx;
+	int32_t value;
 	int16_t i;
 	
 	if( fp )
 	{
 		// work out number of sfx to load...
 		fread( &num_active_sfx, sizeof( u_int16_t ), 1, fp );
+		if ( num_active_sfx == SFX_SAVE_MARKER )
+		{
+			fread( &version, sizeof( u_int16_t ), 1, fp );
+			if ( version != SFX_SAVE_VERSION )
+				return NULL;
+			fread( &num_active_sfx, sizeof( u_int16_t ), 1, fp );
+		}
 
 		// invalidate existing sfx data, stopping any current sfx...
 		for ( i = 0; i < MAX_LOOPING_SFX; i++ )
@@ -2838,14 +2936,110 @@ FILE *LoadAllSfx( FILE *fp )
 		
 		// read in sfx data...
 		for ( i = 0; i < num_active_sfx; i++ )
-			fread( &SpotSfxList[ i ], sizeof( SPOT_SFX_LIST ), 1, fp );
+		{
+			memset( &sfx, 0, sizeof( sfx ) );
+			owner_type = SFX_OWNER_None;
+			owner_index = 0;
+			if ( !version )
+				fread( &sfx, sizeof( SPOT_SFX_LIST ), 1, fp );
+			else
+			{
+				fread( &sfx.sfxindex, sizeof( int16_t ), 1, fp );
+				fread( &value, sizeof( int32_t ), 1, fp );
+				sfx.variant = value;
+				fread( &value, sizeof( int32_t ), 1, fp );
+				sfx.type = value;
+				fread( &sfx.fixedpos, sizeof( VECTOR ), 1, fp );
+				fread( &sfx.fixedgroup, sizeof( u_int16_t ), 1, fp );
+				fread( &sfx.freq, sizeof( float ), 1, fp );
+				fread( &sfx.vol, sizeof( float ), 1, fp );
+				fread( &sfx.Effects, sizeof( u_int16_t ), 1, fp );
+				fread( &sfx.uid, sizeof( u_int32_t ), 1, fp );
+				fread( &owner_type, sizeof( u_int8_t ), 1, fp );
+				fread( &owner_index, sizeof( u_int16_t ), 1, fp );
+			}
+			if ( i >= MAX_LOOPING_SFX )
+				continue;
+			// never keep an address read from disk
+			sfx.used = true;
+			sfx.pos = NULL;
+			sfx.group = NULL;
+			sfx.source = NULL;
+			SpotSfxList[ i ] = sfx;
+			LoadedOwnerType[ i ] = owner_type;
+			LoadedOwnerIndex[ i ] = owner_index;
+		}
 
 		fread( &SfxUniqueID, sizeof( u_int32_t ), 1, fp );
-		
-		ReTriggerSfx();
 	}
 
 	return( fp );
+}
+
+// called once models & spot fx are loaded: reattach moving sfx to their
+// owners, drop anything invalid, then restart the looping sfx
+void LoadAllSfxDone( void )
+{
+	SPOT_SFX_LIST *sfx;
+	u_int8_t type;
+	u_int16_t index;
+	int i, j;
+
+	for ( i = 0; i < MAX_LOOPING_SFX; i++ )
+	{
+		sfx = &SpotSfxList[ i ];
+		if ( !sfx->used )
+			continue;
+
+		sfx->used = false;
+		if ( sfx->sfxindex < 0 || sfx->sfxindex >= MAX_SFX ||
+			sfx->variant < 0 || sfx->variant >= MAX_SFX_VARIANTS || !sfx->uid )
+			continue;
+
+		if ( sfx->type == LOOPING_SFX_FixedGroup )
+		{
+			sfx->used = ( sfx->fixedgroup < Mloadheader.num_groups );
+			continue;
+		}
+		if ( sfx->type != LOOPING_SFX_VariableGroup )
+			continue;
+
+		type = LoadedOwnerType[ i ];
+		index = LoadedOwnerIndex[ i ];
+		// old saves have no handle: look the uid up
+		if ( !SfxOwnerHasUid( type, index, sfx->uid ) )
+		{
+			type = SFX_OWNER_None;
+			for ( j = 0; j < MAXNUMOFMODELS && !type; j++ )
+				if ( SfxOwnerHasUid( SFX_OWNER_Model, j, sfx->uid ) )
+				{
+					type = SFX_OWNER_Model;
+					index = j;
+				}
+			for ( j = 0; j < MAXSPOTFX && !type; j++ )
+				if ( SfxOwnerHasUid( SFX_OWNER_SpotFX, j, sfx->uid ) )
+				{
+					type = SFX_OWNER_SpotFX;
+					index = j;
+				}
+			if ( !type )
+				continue;
+		}
+
+		if ( type == SFX_OWNER_Model )
+		{
+			sfx->pos = &Models[ index ].Pos;
+			sfx->group = &Models[ index ].Group;
+		}
+		else
+		{
+			sfx->pos = &SpotFX[ index ].Pos;
+			sfx->group = &SpotFX[ index ].Group;
+		}
+		sfx->used = ( *sfx->group < Mloadheader.num_groups );
+	}
+
+	ReTriggerSfx();
 }
 
 void PlaySpecificBikerSpeech( int16_t sfx, u_int16_t Group, VECTOR *SfxPos, float Freq, int biker, char variant, bool update )
