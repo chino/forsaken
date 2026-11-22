@@ -2154,8 +2154,10 @@ bool InitView( void )
     if( MyGameStatus != STATUS_InitView_0 )
 		InitView_MyGameStatus = MyGameStatus;
 
+    // keep the score screen's "please wait" up while the next level loads
+    if( !( MyGameStatus == STATUS_ChangeLevelPostInitView && ChangeLevel_MyGameStatus == STATUS_WaitingAfterScore ) )
+      clear_black();
     MyGameStatus = STATUS_InitView_0;
-    clear_black();
     CameraStatus = CAMERA_AtStart;  //prevents on screen menus from being suppressed
     break;
   }
@@ -2311,6 +2313,7 @@ bool RenderScene( void )
   //int result;
   static int WaitFrames = 2;
   bool done;
+  bool next_level;
 
   //DebugPrintf("RenderScene Started\n");
 
@@ -2571,6 +2574,11 @@ bool RenderScene( void )
 	DebugState("STATUS_LevelEnd\n");
 
     clear_black();
+    CenterPrint4x5Text( "waiting for all other players" , (render_info.window_size.cy>>1)-(FontHeight>>1) , 2 );
+    CurrentCamera = MainCamera; // screen polys are clipped to its viewport
+    if( !DisplaySolidScrPolys( &RenderBufs[ 3 ] ) )
+      return false;
+    ScreenPolyProcess();
     ReceiveGameMessages();
     Browl -= framelag;
 
@@ -2648,6 +2656,8 @@ bool RenderScene( void )
 
     ReceiveGameMessages();
 
+    next_level = input_buffer_find( SDLK_SPACE ) || ( OverallGameStatus == STATUS_WaitingAfterScore );
+
     Browl -= framelag;
     if( Browl <= 0.0F )
     {
@@ -2670,7 +2680,9 @@ bool RenderScene( void )
 			return false;
 		}
 
-		ScoreDisplay();
+		// this frame stays on screen while the next level loads
+		ShowGameStats( FULL_BG );
+		CenterPrint4x5Text( next_level ? PLEASE_WAIT : "Press Space to continue", render_info.window_size.cy - (FontHeight*2), 0 );
 
 		if( !DisplaySolidScrPolys( &RenderBufs[ 3 ] ) )
 			return false;
@@ -2685,9 +2697,8 @@ bool RenderScene( void )
 
     HostMultiPlayerTimeout -= framelag;
 
-    if( input_buffer_find( SDLK_SPACE ) || ( OverallGameStatus == STATUS_WaitingAfterScore ) )
+    if( next_level )
     {
-		clear_black();
 		HostMultiPlayerTimeout = 60.0F * 60.0F * 2.0F;
 
       if( IsHost )
