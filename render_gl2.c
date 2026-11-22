@@ -49,8 +49,8 @@ bool FSCreateDynamicIndexBuffer(RENDEROBJECT *renderObject, int numIndices)
 // should be rewritten to use a locally malloc'ed buffer and update
 // the real buffer on unlock using glBufferSubData.
 
-static GLuint old_array_buf = 0;
-static GLuint old_index_buf = 0;
+static GLint old_array_buf = 0;
+static GLint old_index_buf = 0;
 
 bool FSLockVertexBuffer(RENDEROBJECT *renderObject, LVERTEX **verts)
 {
@@ -60,7 +60,7 @@ bool FSLockVertexBuffer(RENDEROBJECT *renderObject, LVERTEX **verts)
 		return false;
 	}
 	glGetIntegerv( GL_ARRAY_BUFFER_BINDING, &old_array_buf );
-	glBindBuffer( GL_ARRAY_BUFFER, (GLuint) renderObject->lpVertexBuffer );
+	glBindBuffer( GL_ARRAY_BUFFER, (GLuint)(size_t) renderObject->lpVertexBuffer );
 	*verts = (LVERTEX *) glMapBuffer( GL_ARRAY_BUFFER, GL_WRITE_ONLY );
 	if(!*verts)
 	{
@@ -88,7 +88,7 @@ bool FSLockNormalBuffer(RENDEROBJECT *renderObject, NORMAL **normals)
 		return false;
 	}
 	glGetIntegerv( GL_ARRAY_BUFFER_BINDING, &old_array_buf );
-	glBindBuffer( GL_ARRAY_BUFFER, (GLuint) renderObject->lpNormalBuffer );
+	glBindBuffer( GL_ARRAY_BUFFER, (GLuint)(size_t) renderObject->lpNormalBuffer );
 	*normals = (NORMAL *) glMapBuffer( GL_ARRAY_BUFFER, GL_WRITE_ONLY );
 	if(!*normals)
 	{
@@ -116,7 +116,7 @@ bool FSLockIndexBuffer(RENDEROBJECT *renderObject, WORD **indices)
 		return false;
 	}
 	glGetIntegerv( GL_ELEMENT_ARRAY_BUFFER_BINDING, &old_index_buf );
-	glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, (GLuint) renderObject->lpIndexBuffer );
+	glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, (GLuint)(size_t) renderObject->lpIndexBuffer );
 	*indices = (WORD *) glMapBuffer( GL_ELEMENT_ARRAY_BUFFER, GL_WRITE_ONLY );
 	if(!*indices)
 	{
@@ -185,18 +185,18 @@ bool draw_render_object( RENDEROBJECT *renderObject, int primitive_type, bool or
 		{ NULL,     0, 0,                0,        0  }
 	}, *attr;
 	//GLuint current_program;
-	GLuint u_ortho;
-	GLuint u_colorkey;
-	GLuint u_enabletex;
+	GLint u_ortho;
+	GLint u_colorkey;
+	GLint u_enabletex;
 	TEXTUREGROUP *group;
 	texture_t *texdata;
 	int loc;
 	int i;
 
-	glBindBuffer( GL_ARRAY_BUFFER, renderObject->lpVertexBuffer );
+	glBindBuffer( GL_ARRAY_BUFFER, (GLuint)(size_t) renderObject->lpVertexBuffer );
 
 	if ( renderObject->lpIndexBuffer )
-		glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, renderObject->lpIndexBuffer );
+		glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, (GLuint)(size_t) renderObject->lpIndexBuffer );
 	else
 		glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, 0 );
 
@@ -219,7 +219,7 @@ bool draw_render_object( RENDEROBJECT *renderObject, int primitive_type, bool or
 				attr[i].type,
 				attr[i].normalized,
 				orthographic ? sizeof(TLVERTEX) : sizeof(LVERTEX),
-				attr[i].offset
+				(const GLvoid *)(size_t) attr[i].offset
 			);
 			glEnableVertexAttribArray( loc );
 		}
@@ -230,7 +230,7 @@ bool draw_render_object( RENDEROBJECT *renderObject, int primitive_type, bool or
 	// tell it about the normal buffer
 	if ( renderObject->lpNormalBuffer )
 	{
-		glBindBuffer( GL_ARRAY_BUFFER, renderObject->lpNormalBuffer );
+		glBindBuffer( GL_ARRAY_BUFFER, (GLuint)(size_t) renderObject->lpNormalBuffer );
 		loc = glGetAttribLocation( current_program, "vnormal" );
 		if (loc >= 0)
 		{
@@ -269,7 +269,7 @@ bool draw_render_object( RENDEROBJECT *renderObject, int primitive_type, bool or
 			primitive_type,
 			group->numTriangles * 3,
 			GL_UNSIGNED_SHORT,
-			group->startIndex * sizeof(WORD),
+			(GLvoid *)(group->startIndex * sizeof(WORD)),
 			group->startVert
 		);
 	}
