@@ -1731,6 +1731,8 @@ void VRMenuRecenter( MENUITEM *Item )
 	vr_recenter();
 }
 
+MENU	MENU_Keyboard;
+
 SLIDER VRTurnSpeedSlider = { 50, 150, 5, 100, 0, 0.0F, 0.0F, 0, false, NULL, NULL, SetVRTurnSpeed };
 
 MENU	MENU_NEW_VROptions = {
@@ -1743,6 +1745,7 @@ MENU	MENU_NEW_VROptions = {
 		{ 20,  88, 150,  88, 0,				"Ship bob",				FONT_Small, TEXTFLAG_CentreY,						&vr_ship_bob,		NULL,	SelectFlatMenuToggle,	DrawFlatMenuToggle,	NULL, 0 },
 		{ 20, 104, 150, 104, 0,				"HUD on the cockpit",	FONT_Small, TEXTFLAG_CentreY,						&vr_hud_cockpit,	NULL,	SelectFlatMenuToggle,	DrawFlatMenuToggle,	NULL, 0 },
 		{ 20, 120, 150, 120, 0,				"Vibration",			FONT_Small, TEXTFLAG_CentreY,						&vr_vibration,		NULL,	SelectFlatMenuToggle,	DrawFlatMenuToggle,	NULL, 0 },
+		{ 20, 136, 200, 136, 0,				"Controls",				FONT_Small, TEXTFLAG_CentreY,						NULL,				&MENU_NEW_Controls,	MenuChange,	DrawFlatMenuItem,	NULL, 0 },
 		{ 20, 150, 100, 150, 0,				"Back",					FONT_Small, TEXTFLAG_CentreY,						NULL,				NULL,	MenuItemBack,			DrawFlatMenuItem,	NULL, 0 },
 		{ -1, -1, 0, 0, 0, "", 0, 0,  NULL, NULL, NULL, NULL, NULL, 0 }
 	}
@@ -1757,6 +1760,7 @@ MENU	MENU_VROptions = {
 		OLDMENUITEM( 200, 176, "Ship Bob",				&vr_ship_bob,		NULL,	SelectToggle,	DrawToggle ),
 		OLDMENUITEM( 200, 192, "HUD on the Cockpit",	&vr_hud_cockpit,	NULL,	SelectToggle,	DrawToggle ),
 		OLDMENUITEM( 200, 208, "Vibration",				&vr_vibration,		NULL,	SelectToggle,	DrawToggle ),
+		OLDMENUITEM( 200, 224, "Controls",				NULL,				&MENU_Keyboard,	MenuChange,	MenuItemDrawName ),
 		{ -1 , -1, 0, 0, 0, "" , 0, 0, NULL, NULL , NULL , NULL, NULL, 0 }
 	}
 };

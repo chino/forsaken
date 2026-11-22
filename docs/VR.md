@@ -82,7 +82,7 @@ Options > Visuals (both only shown in the headset), which also has **Recenter**:
 
 The controllers show up as a joystick called **OpenXR Controllers**, so they
 can be changed in the game's joystick menus like any other joystick and are
-saved with your pilot. Bindings are suggested for Oculus Touch, Valve Index,
+saved with your pilot. **Controls** in VR Options goes straight to those menus. Bindings are suggested for Oculus Touch, Valve Index,
 Windows Mixed Reality, HTC Vive and the generic Khronos simple controller.
 
 Default layout (Touch names):
