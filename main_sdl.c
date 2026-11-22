@@ -211,18 +211,6 @@ static u_int32_t create_video_flags( void )
 #endif
 
 #if SDL_VERSION_ATLEAST(2,0,0)
-static u_int32_t create_renderer_flags( void )
-{
-	// doubt we want to support   SDL_RENDERER_SOFTWARE
-	// we might need to add       SDL_RENDERER_TARGETTEXTURE
-	u_int32_t renderer_flags = SDL_RENDERER_ACCELERATED;
-
-	DebugPrintf("vsync set to %d\n",render_info.vsync);
-	if(render_info.vsync)
-		renderer_flags |= SDL_RENDERER_PRESENTVSYNC;
-
-	return renderer_flags;
-}
 static u_int32_t create_window_flags( void )
 {
 	u_int32_t window_flags = SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE; // TODO - we really want resizable ?
@@ -240,33 +228,69 @@ static u_int32_t create_window_flags( void )
 
 
 
-static bool create_video_surface( u_int32_t window_flags, u_int32_t renderer_flags )
+static bool create_video_surface( u_int32_t window_flags )
 {
 #ifndef RENDER_DISABLED
   #if SDL_VERSION_ATLEAST(2,0,0)
-	render_info.window = SDL_CreateWindow(
-		"ProjectX",
-		SDL_WINDOWPOS_CENTERED,
-		SDL_WINDOWPOS_CENTERED,
-		render_info.ThisMode.w,
-		render_info.ThisMode.h,
-		window_flags
-		);
-	if(!render_info.window)
+	int w = render_info.ThisMode.w;
+	int h = render_info.ThisMode.h;
+	u_int32_t fullscreen = SDL_WINDOW_FULLSCREEN;
+
+	// mode 0 is the desktop resolution
+	if( !w || !h )
 	{
-		Msg("main_sdl: failed to create window: %s\n",SDL_GetError());
-		return false;
+		SDL_DisplayMode desktop;
+		w = 800;
+		h = 600;
+		if( SDL_GetDesktopDisplayMode( 0, &desktop ) == 0 )
+		{
+			w = desktop.w;
+			h = desktop.h;
+		}
+		fullscreen = SDL_WINDOW_FULLSCREEN_DESKTOP;
 	}
-	render_info.renderer = SDL_CreateRenderer(
-		render_info.window,
-		-1,
-		renderer_flags
-		);
-	if(!render_info.renderer)
+
+	if( render_info.window )
 	{
-		Msg("main_sdl: failed to create renderer: %s\n",SDL_GetError());
-		return false;
+		// mode change: keep the window and its GL context,
+		// a new window would lose every texture and buffer
+		SDL_SetWindowFullscreen( render_info.window, 0 );
+		SDL_SetWindowSize( render_info.window, w, h );
+		if( render_info.fullscreen )
+			SDL_SetWindowFullscreen( render_info.window, fullscreen );
+		else
+			SDL_SetWindowPosition( render_info.window,
+				SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED );
 	}
+	else
+	{
+		if( render_info.fullscreen )
+			window_flags = ( window_flags & ~SDL_WINDOW_FULLSCREEN ) | fullscreen;
+		render_info.window = SDL_CreateWindow(
+			"ProjectX",
+			SDL_WINDOWPOS_CENTERED,
+			SDL_WINDOWPOS_CENTERED,
+			w, h,
+			window_flags
+			);
+		if(!render_info.window)
+		{
+			Msg("main_sdl: failed to create window: %s\n",SDL_GetError());
+			return false;
+		}
+		render_info.gl_context = SDL_GL_CreateContext( render_info.window );
+		if(!render_info.gl_context)
+		{
+			Msg("main_sdl: failed to create GL context: %s\n",SDL_GetError());
+			return false;
+		}
+	}
+
+	DebugPrintf("vsync set to %d\n",render_info.vsync);
+	SDL_GL_SetSwapInterval( render_info.vsync ? 1 : 0 );
+
+	SDL_GL_GetDrawableSize( render_info.window, &w, &h );
+	sdl_set_render_size( w, h );
 
   #else
 	render_info.screen = SDL_SetVideoMode(
@@ -281,6 +305,7 @@ static bool create_video_surface( u_int32_t window_flags, u_int32_t renderer_fla
 		Msg("main_sdl: failed to create video surface: %s\n",SDL_GetError());
 		return false;
 	}
+	sdl_set_render_size( render_info.screen->w, render_info.screen->h );
   #endif
 	
 	print_info();
@@ -301,19 +326,33 @@ static void set_window_title( void )
 // TODO - we need a ui control for this
 static void set_aspect_ratio( void )
 {
+	if( !render_info.ThisMode.h )
+		return;
 	render_info.aspect_ratio = (float) render_info.ThisMode.w / (float) render_info.ThisMode.h;
 	DebugPrintf("aspect ratio: %d:%d\n",render_info.ThisMode.w,render_info.ThisMode.h);
+}
+
+// the size we really render at (desktop size for mode 0, or a resized window)
+void sdl_set_render_size( int w, int h )
+{
+	if( w <= 0 || h <= 0 || ( w == render_info.ThisMode.w && h == render_info.ThisMode.h ) )
+		return;
+	render_info.ThisMode.w       = w;
+	render_info.ThisMode.h       = h;
+	render_info.window_size.cx   = w;
+	render_info.window_size.cy   = h;
+	render_info.WindowsDisplay.w = w;
+	render_info.WindowsDisplay.h = h;
+	set_aspect_ratio();
 }
 
 bool sdl_init_video( void )
 {
 #if SDL_VERSION_ATLEAST(2,0,0)
-	u_int32_t renderer_flags = create_renderer_flags();
 	u_int32_t window_flags   = create_window_flags();
 #else
 	// old sdl had one set of flags
 	u_int32_t window_flags   = create_video_flags();
-	u_int32_t renderer_flags = window_flags;
 #endif
 
 	set_window_icon();
@@ -324,7 +363,7 @@ bool sdl_init_video( void )
 
 	set_aspect_ratio();
 
-	if(!create_video_surface( window_flags, renderer_flags ))
+	if(!create_video_surface( window_flags ))
 		return false;
 
 #ifdef WIN32
@@ -349,7 +388,7 @@ bool sdl_init_video( void )
 void sdl_render_present( render_info_t * info )
 {
 #if SDL_VERSION_ATLEAST(2,0,0)
-	SDL_RenderPresent(info->renderer);
+	SDL_GL_SwapWindow(info->window);
 #else
 	SDL_GL_SwapBuffers();
 #endif
