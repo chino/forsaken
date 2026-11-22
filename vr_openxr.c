@@ -55,6 +55,7 @@ bool  vr_steady_mirror = true;
 bool  vr_invert_pitch = false;
 bool  vr_leftorium   = false;
 bool  vr_swap_sticks = false;
+bool  vr_swivel      = false;
 bool  vr_photo_mode  = false;
 
 // the panel the HUD and menus are drawn on, in metres
@@ -375,6 +376,14 @@ static XrPosef         panel_pose;
 
 // a recentre was asked for
 static bool            want_recenter = true;
+
+// the room's turn and origin in the runtime's local space
+static XrPosef         local_pose = { { 0.0f, 0.0f, 0.0f, 1.0f } };
+static float           local_yaw  = 0.0f;
+
+// the body's turn not yet taken by the ship, and whether it is taking it
+static float           swivel_pending = 0.0f;
+static bool            swivel_live    = false;
 
 static const char * xr_str( XrResult r )
 {
@@ -1208,9 +1217,66 @@ static void recenter( XrTime t )
 
 	xrDestroySpace( xr_local );
 	xr_local = fresh;
+	local_pose = rs.poseInReferenceSpace;
+	local_yaw = yaw;
 	want_recenter = false;
 	panel_placed = false;
 	DebugPrintf( "openxr: recentred, yaw %.1f degrees\n", yaw * 57.29578f );
+}
+
+float vr_swivel_take( void )
+{
+	float turn = swivel_pending;
+
+	swivel_pending = 0.0f;
+	swivel_live = true;
+	return turn;
+}
+
+// Swivel chair: the head's turn since last frame goes out of the view, by
+// turning the room with it, and into the ship. Only while the game takes
+// it; in a menu the turn is let be. Yaw read from a head looking steeply up
+// or down is unreliable, so the swivel eases out between 45 and 60 degrees
+// of elevation, and a jump of half a radian in one frame is tracking, not
+// a person.
+static void swivel( void )
+{
+	XrReferenceSpaceCreateInfo rs = { XR_TYPE_REFERENCE_SPACE_CREATE_INFO };
+	static float last;
+	static bool have_last = false;
+	const float * q = views[ 0 ].quat;
+	float yaw, d, weight;
+	bool live = swivel_live && have_last;
+	XrSpace fresh;
+
+	// the head's turn in the room, whatever we turned the room by
+	yaw = local_yaw + (float) atan2( 2.0 * ( q[3] * q[1] + q[0] * q[2] ),
+	                                 1.0 - 2.0 * ( q[1] * q[1] + q[2] * q[2] ) );
+	d = yaw - last;
+	last = yaw;
+	have_last = true;
+	swivel_live = false;
+	if( !live )
+		return;
+
+	while( d >  3.14159265f ) d -= 6.2831853f;
+	while( d < -3.14159265f ) d += 6.2831853f;
+	weight = ( 0.866f - fabsf( 2.0f * ( q[3] * q[0] - q[1] * q[2] ) ) ) / ( 0.866f - 0.707f );
+	d *= weight < 0.0f ? 0.0f : weight > 1.0f ? 1.0f : weight;
+	if( fabsf( d ) > 0.5f || fabsf( d ) < 0.00001f )
+		return;
+
+	rs.referenceSpaceType = XR_REFERENCE_SPACE_TYPE_LOCAL;
+	rs.poseInReferenceSpace = local_pose;
+	rs.poseInReferenceSpace.orientation.y = sinf( ( local_yaw + d ) * 0.5f );
+	rs.poseInReferenceSpace.orientation.w = cosf( ( local_yaw + d ) * 0.5f );
+	if( XR_FAILED( xrCreateReferenceSpace( xr_session, &rs, &fresh ) ) )
+		return;
+	xrDestroySpace( xr_local );
+	xr_local = fresh;
+	local_pose = rs.poseInReferenceSpace;
+	local_yaw += d;
+	swivel_pending += d;
 }
 
 /*===================================================================
@@ -1289,6 +1355,7 @@ void vr_begin_frame( void )
 		views[ eye ].tan_down  = tanf( v->fov.angleDown );
 	}
 	views_valid = true;
+	swivel();
 
 	// from here on the game draws into the panel unless an eye is bound
 	bind_target( panel_target.fbo, panel_target.w, panel_target.h );

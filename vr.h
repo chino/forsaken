@@ -128,6 +128,11 @@ extern bool vr_invert_pitch;
 extern bool vr_leftorium;
 extern bool vr_swap_sticks;
 
+// swivel chair: turning the body turns the ship (VRSwivel). The game takes
+// the turn, in radians, left positive, each frame it can apply it.
+extern bool vr_swivel;
+float vr_swivel_take( void );
+
 // the desktop window shows a steady, level cut-out of the left eye instead
 // of following every movement of the head (VRSteadyMirror)
 extern bool vr_steady_mirror;
