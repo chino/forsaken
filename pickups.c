@@ -3798,17 +3798,48 @@ void RegeneratePickups( void )
 		}
 	}
 
-	/* regen primaries */
-	for( Count = 1; Count < MAXPRIMARYWEAPONS; Count++ )
+	/* regen primaries
+	   Walking the weapons in a fixed order always gave the first types
+	   (trojax, then pyrolite...) the free regen points first, so with
+	   several primaries per type the level filled up with one kind before
+	   the others. Pick the weapons in a random order instead, weighted by
+	   how many of each are waiting, at most one pick per waiting type each
+	   time round so the regeneration rate is unchanged. */
 	{
-		// if this weapon should be regenerated
-		if( NumPrimWeapons[ Count ] <= 0 ) continue;
-		// get the weapon id
-		u_int16_t weapon = PICKUP_Trojax + Count - 1;
-		// regenerate weapon
-		if ( ! RegeneratePickup( weapon ) ) continue;
-		// decrement count to regenerate
-		NumPrimWeapons[ Count ]--;
+		int16_t	picks = 0;
+		int16_t	total;
+		int16_t	pick;
+
+		for( Count = 1; Count < MAXPRIMARYWEAPONS; Count++ )
+			if( NumPrimWeapons[ Count ] > 0 )
+				picks++;
+
+		while( picks-- > 0 )
+		{
+			total = 0;
+			for( Count = 1; Count < MAXPRIMARYWEAPONS; Count++ )
+				if( NumPrimWeapons[ Count ] > 0 )
+					total += NumPrimWeapons[ Count ];
+			if( total <= 0 )
+				break;
+
+			pick = (int16_t) Random_Range( (u_int16_t) total );
+			for( Count = 1; Count < MAXPRIMARYWEAPONS; Count++ )
+			{
+				if( NumPrimWeapons[ Count ] <= 0 ) continue;
+				if( pick < NumPrimWeapons[ Count ] ) break;
+				pick -= NumPrimWeapons[ Count ];
+			}
+			if( Count >= MAXPRIMARYWEAPONS )
+				break;
+
+			// no free regen point for it, try again next time round
+			if( ! RegeneratePickup( (u_int16_t)( PICKUP_Trojax + Count - 1 ) ) )
+				continue;
+
+			// decrement count to regenerate
+			NumPrimWeapons[ Count ]--;
+		}
 	}
 
 	/* regen power pods */
@@ -4098,12 +4129,13 @@ bool RegeneratePickup( u_int16_t Type )
 	else
 	{
 		
-		/* pick a random location */
-		Slot = FreeSlots[ Random_Range( NumFreeSlots ) ];
-		
-     	/* if slots less than 5 ditch out */
+     	/* if slots less than 5 ditch out
+		   (checked first, FreeSlots[] is uninitialised when empty) */
 		if( NumFreeSlots < 5 )
 			return false;
+
+		/* pick a random location */
+		Slot = FreeSlots[ Random_Range( NumFreeSlots ) ];
 
 	}
 
