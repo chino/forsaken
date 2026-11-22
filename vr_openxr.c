@@ -52,6 +52,9 @@ bool  vr_ship_bob    = true;
 bool  vr_hud_cockpit = true;
 bool  vr_vibration   = true;
 bool  vr_steady_mirror = true;
+bool  vr_invert_pitch = false;
+bool  vr_leftorium   = false;
+bool  vr_swap_sticks = false;
 bool  vr_photo_mode  = false;
 
 // the panel the HUD and menus are drawn on, in metres
@@ -694,7 +697,7 @@ void vr_haptic( int hand, float amplitude, int ms )
 
 	if( !vr_vibration || !actions_ready || !xr_running || xr_state != XR_SESSION_STATE_FOCUSED )
 		return;
-	info.action   = xr_actions[ hand == VR_HAND_LEFT ? ACT_BUZZ_L : ACT_BUZZ_R ];
+	info.action   = xr_actions[ ( hand == VR_HAND_LEFT ) != vr_leftorium ? ACT_BUZZ_L : ACT_BUZZ_R ];
 	vib.amplitude = amplitude > 1.0f ? 1.0f : amplitude;
 	vib.duration  = (XrDuration) ms * 1000000;
 	vib.frequency = XR_FREQUENCY_UNSPECIFIED;

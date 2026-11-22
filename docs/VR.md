@@ -64,6 +64,9 @@ Options > Visuals (both only shown in the headset), which also has **Recenter**:
 | `VRHudCockpit = false` | true | Keep the HUD in front of your eyes wherever you look instead of fixed in the cockpit. |
 | `VRSteadyMirror = false` | true | Mirror the left eye as it is instead of a steady, level cut-out of it that follows your turns but not every small head movement. |
 | `VRVibration = false`  | true | Stop the controllers buzzing when you fire (primary in the right hand, secondary in the left) and when you are hit (both, harder for a bigger hit). |
+| `VRInvertPitch = true` | false | Stick up puts the nose down, the way a flight stick works. The game's own Invert Y only changes the mouse. |
+| `VRLeftorium = true`   | false | Left-handed: the hands swap triggers, grips and face buttons, so the left trigger fires primary. The sticks stay put. |
+| `VRSwapSticks = true`  | false | Thrust and strafe on the right stick, turning on the left. |
 
 ## What you get
 
@@ -93,7 +96,7 @@ Default layout (Touch names):
 | Control            | Action |
 |--------------------|--------|
 | Left stick         | Thrust and strafe |
-| Right stick        | Turn and pitch |
+| Right stick        | Turn and pitch; its dead zone widens on one axis the further the other is pushed, so straight up pitches cleanly |
 | Right trigger      | Fire primary |
 | Left trigger       | Fire secondary |
 | Right / left grip  | Slide up / down |
