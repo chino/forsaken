@@ -51,6 +51,7 @@ float ReturnDistanceVolumeVector( VECTOR *sfxpos, u_int16_t sfxgroup, VECTOR *li
 
 FILE *SaveAllSfx( FILE *fp ){return fp;}
 FILE *LoadAllSfx( FILE *fp ){return fp;}
+void StopAllSfx( void ){}
 
 #else
 
@@ -1247,6 +1248,26 @@ void PauseAllSfx( void )
 		{
 			StopSfx( SfxHolder[ i ].UniqueID );
 		}
+	}
+}
+
+// stop every sfx and forget the looping ones, nothing gets restarted later
+void StopAllSfx( void )
+{
+	int i;
+
+	for( i = 0; i < MAX_ANY_SFX; i++ )
+		if ( SfxHolder[ i ].Used )
+			StopSfx( SfxHolder[ i ].UniqueID );
+
+	for ( i = 0; i < MAX_LOOPING_SFX; i++ )
+	{
+		if ( SpotSfxList[ i ].source )
+		{
+			sound_release_source( SpotSfxList[ i ].source );
+			SpotSfxList[ i ].source = NULL;
+		}
+		SpotSfxList[ i ].used = false;
 	}
 }
 

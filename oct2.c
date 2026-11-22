@@ -2570,6 +2570,8 @@ bool RenderScene( void )
   case STATUS_LevelEnd:
 	DebugState("STATUS_LevelEnd\n");
 
+    StopAllSfx();
+
     clear_black();
     ReceiveGameMessages();
     Browl -= framelag;
@@ -3994,7 +3996,7 @@ void CheckLevelEnd ( void )
 
   if( HasLevelEnded() )
   {
-    PauseAllSfx();
+    StopAllSfx();
 #ifdef FINAL_RELEASE
     if( OriginalLevels )
     {
