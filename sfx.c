@@ -2,6 +2,7 @@
 #include "render.h"
 #include "sound.h"
 #include "sfx.h"
+#include "music.h"
 
 #ifndef SOUND_SUPPORT
 
@@ -528,6 +529,7 @@ extern VECTOR	SlideUp;
 extern VECTOR	Forward;
 extern float	SoundInfo[MAXGROUPS][MAXGROUPS];
 extern SLIDER  SfxSlider; 
+extern SLIDER  MusicSlider;
 extern USERCONFIG *player_config;
 
 extern float framelag;	
@@ -2400,6 +2402,7 @@ void SetPannedSourceParams( void* sound_source, VECTOR *SfxPos, float Freq, VECT
 void SetSoundLevels( int *dummy )
 {
 	GlobalSoundAttenuation = SfxSlider.value / ( SfxSlider.max / GLOBAL_MAX_SFX );
+	music_set_volume( (float) MusicSlider.value / (float) MusicSlider.max );
 }
 
 #define TRIGGER_SFX_PAUSE_VALUE 20.0F	// pause between triggered sfx ( 20.0F = 1/3 second )

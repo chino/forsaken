@@ -5,6 +5,7 @@
 
 #define MAX_SHORT_LEVEL_NAME 32
 extern char ShortLevelNames[MAXLEVELS][MAX_SHORT_LEVEL_NAME];
+extern int LevelTrack[MAXLEVELS];
 
 extern int16_t NewLevelNum;
 

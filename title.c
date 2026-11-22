@@ -50,6 +50,7 @@
 #include "singleplayer.h"
 #include "util.h"
 #include "lua_config.h"
+#include "music.h"
 #include "net_tracker.h"
 #include "lua_games.h"
 #include "timer.h"
@@ -796,6 +797,7 @@ SLIDER BountyBonusSlider				= { 1, 30, 1, 10, 0, 0.0F };
 SLIDER CTFSlider							= { 0, CTF_MAX - 1, 1, CTF_STANDARD, -1, 0.0F, 0.0F, 0, false, CTF_Type };
 SLIDER DemoSpeed						= { 1, 16, 1, 8, 0, 0.0F };
 SLIDER SfxSlider							= { 0, 10, 1, 10, 0, 0.0F };
+SLIDER MusicSlider							= { 0, 10, 1, 7, 0, 0.0F };
 SLIDER BikerSpeechSlider				= { 0, 10, 1, 8, 0, 0.0F };
 SLIDER BikeCompSpeechSlider			= { 0, 10, 1, 8, 0, 0.0F };
 SLIDER DemoEyesSelect				= { 0, MAX_PLAYERS, 1, 0, 0, 0.0F };
@@ -2138,6 +2140,9 @@ MENU	MENU_NEW_Sound = {
 	{
 		{ 0,	0,		200,	20,	0, LT_MENU_NEW_Sound1 /*"sound options"		*/, FONT_Medium,	TEXTFLAG_CentreX | TEXTFLAG_CentreY,		NULL,								NULL, NULL,							DrawFlatMenuItem,		NULL, 0 } ,
 		{ 10,	40,	100,	50,	0, LT_MENU_NEW_Sound2 /*"sfx volume"			*/, FONT_Small,		TEXTFLAG_AutoSelect | TEXTFLAG_CentreY,	&SfxSlider,						NULL, SelectSlider,				DrawFlatMenuSlider,		NULL, 0 } ,
+#ifdef MUSIC
+		{ 10,	50,	100,	60,	0, LT_MENU_NEW_Sound3 /*"music volume"		*/, FONT_Small,		TEXTFLAG_AutoSelect | TEXTFLAG_CentreY,	&MusicSlider,					NULL, SelectSlider,				DrawFlatMenuSlider,		NULL, 0 } ,
+#endif
 		{ 10,	60,	100,	70,	0, LT_MENU_NEW_Sound4 /*"bike engines"		*/, FONT_Small,		TEXTFLAG_CentreY,										&BikeEnginesOn,				NULL, SelectFlatMenuToggle,	DrawFlatMenuToggle,	NULL, 0 } ,
 		{ 0,	80,	200,	100,	0, LT_MENU_NEW_Sound5 /*"speech options"	*/, FONT_Medium,	TEXTFLAG_CentreX | TEXTFLAG_CentreY,		NULL,								NULL, NULL,							DrawFlatMenuItem,		NULL, 0 } ,
 		{ 10, 100,	100,	110,	0, LT_MENU_NEW_Sound6 /*"biker speech"		*/, FONT_Small,		TEXTFLAG_AutoSelect | TEXTFLAG_CentreY,	&BikerSpeechSlider,			NULL, SelectSlider,				DrawFlatMenuSlider,		NULL, 0 } ,
@@ -2152,6 +2157,9 @@ MENU	MENU_NEW_InGameSound = {
 	LT_MENU_NEW_InGameSound0 /*"sound"*/ , NULL, NULL, SetSoundLevels, 0,
 	{
 		{ 200, 128				 , 0, 0, 0, LT_MENU_NEW_InGameSound1 /*"sfx volume    "		*/, 0, 0, &SfxSlider,						NULL,						SelectSlider,	DrawSlider,		NULL, 0 },
+#ifdef MUSIC
+		{ 200, 128 + (1*16)	 , 0, 0, 0, LT_MENU_NEW_InGameSound2 /*"music volume  "		*/, 0, 0, &MusicSlider,					NULL,						SelectSlider,	DrawSlider,		NULL, 0 },
+#endif
 		{ 200, 128 + (2*16)	 , 0, 0, 0, LT_MENU_NEW_InGameSound3 /*"bike engines  "		*/, 0, 0, &BikeEnginesOn,				ToggleBikeEngines,	SelectToggle,	DrawToggle,	NULL, 0 },
 		{ 200, 128 + (3*16)  , 0, 0, 0, LT_MENU_NEW_InGameSound4 /*"biker volume  "		*/, 0, 0, &BikerSpeechSlider,			NULL,						SelectSlider,	DrawSlider,		NULL, 0 },
 		{ 200, 128 + (4*16)  , 0, 0, 0, LT_MENU_NEW_InGameSound5 /*"bike computer "	*/, 0, 0, &BikeCompSpeechSlider,	NULL,						SelectSlider,	DrawSlider,		NULL, 0 },
@@ -9326,11 +9334,14 @@ void GetGamePrefs( void )
 
     SfxSlider.value                  = config_get_int( "SfxVolume",					(int)(SfxSlider.max				* 1.00F) );
     FlagSfxSlider.value              = config_get_int( "FlagSfxVolume",				(int)(FlagSfxSlider.max			* 0.80F) );
+    MusicSlider.value                = config_get_int( "MusicVolume",				(int)(MusicSlider.max			* 0.70F) );
 	BikerSpeechSlider.value          = config_get_int( "BikerSpeechVolume",			(int)(BikerSpeechSlider.max		* 0.60F) );
     BikeCompSpeechSlider.value       = config_get_int( "BikeCompSpeechVol",			(int)(BikeCompSpeechSlider.max	* 0.60F) );
 
 	CLAMP( SfxSlider.value,				SfxSlider.max );
 	CLAMP( FlagSfxSlider.value,			FlagSfxSlider.max );
+	CLAMP( MusicSlider.value,			MusicSlider.max );
+	music_set_volume( (float) MusicSlider.value / (float) MusicSlider.max );
 	CLAMP( BikerSpeechSlider.value,		BikerSpeechSlider.max );
 	CLAMP( BikeCompSpeechSlider.value,	BikeCompSpeechSlider.max );
 
@@ -9481,6 +9492,7 @@ void SetGamePrefs( void )
 	config_set_int( "ScreenHeight",			render_info.Mode[ render_info.CurrMode ].h );
 	config_set_int( "SfxVolume",			SfxSlider.value );
 	config_set_int( "FlagSfxVolume",		FlagSfxSlider.value );
+	config_set_int( "MusicVolume",			MusicSlider.value );
 	config_set_int( "Gamma",			GammaSlider.value );
 	config_set_int( "water",			WaterDetailSlider.value );
 	config_set_int( "TextScale", TextScaleSlider.value );
