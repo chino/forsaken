@@ -14,6 +14,9 @@
 #include <SDL.h>
 #include "input.h"
 #include "sound.h"
+#ifdef VR_OPENXR
+#include "vr.h"
+#endif
 
 #ifndef WIN32
 #include <unistd.h>
@@ -277,6 +280,30 @@ static bool ParseCommandLine(char* lpCmdLine)
 			SpaceOrbSetup = true;
 		}
 
+#ifdef VR_OPENXR
+		// render to an OpenXR headset
+		else if ( !strcasecmp( option, "vr" ) )
+		{
+			vr_requested = true;
+		}
+
+		// world units per metre in the headset
+		else if ( !strncasecmp( option, "vrscale:", 8 ) )
+		{
+			float scale = (float) atof( option + 8 );
+			if ( scale > 0.0f )
+				vr_world_scale = scale;
+		}
+
+		// percentage of the runtime's recommended eye resolution
+		else if ( !strncasecmp( option, "vrres:", 6 ) )
+		{
+			int res = atoi( option + 6 );
+			if ( res >= 10 && res <= 400 )
+				vr_res_scale = res;
+		}
+#endif
+
 		// use sscanf
 		else 
 		{
@@ -350,6 +377,11 @@ void CleanUpAndPostQuit(void)
 
 	// kill stuff
     ReleaseView();
+
+#ifdef VR_OPENXR
+	// needs the GL context, so before the renderer goes
+	vr_shutdown();
+#endif
 
 	// stop rendering and destroy objects
 	render_cleanup( &render_info );
@@ -489,6 +521,12 @@ static bool AppInit( char * lpCmdLine )
 		return false;
 	}
 
+#ifdef VR_OPENXR
+	// needs the GL context; on failure we simply stay on the desktop
+	if ( vr_requested )
+		vr_init();
+#endif
+
 	// appears dinput has to be after init window
 
 	// initialize direct input
@@ -543,12 +581,25 @@ static bool RenderLoop()
     if ( !render_info.ok_to_render || render_info.minimized || render_info.bPaused || QuitRequested )
 		return true;
 
+#ifdef VR_OPENXR
+	// wait for the headset and locate the eyes
+	vr_begin_frame();
+#endif
+
     // Call the sample's RenderScene to render this frame
     if (!RenderScene())
 	{
+#ifdef VR_OPENXR
+		vr_end_frame();
+#endif
         Msg("RenderScene failed.\n");
         return false;
     }
+
+#ifdef VR_OPENXR
+	// hand the frame to the headset and draw the desktop mirror
+	vr_end_frame();
+#endif
 
 	if ( quitting )
 	{
