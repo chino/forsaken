@@ -1,0 +1,67 @@
+# Flatpak manifest for ForsakenX.
+#
+#   flatpak-builder --user --install --force-clean build-dir \
+#       packaging/flatpak/io.github.ForsakenX.Forsaken.yml
+#   flatpak run io.github.ForsakenX.Forsaken
+#
+# The game is built against SDL2 + OpenGL 1 and enet 1.3.
+# Game data comes from ForsakenX/forsaken-data.
+# Pilots, configs and saved games live in
+# ~/.var/app/io.github.ForsakenX.Forsaken/data/forsaken
+
+app-id: io.github.ForsakenX.Forsaken
+runtime: org.freedesktop.Platform
+runtime-version: '24.08'
+sdk: org.freedesktop.Sdk
+command: forsaken
+finish-args:
+  - --share=ipc
+  - --socket=x11
+  - --socket=wayland
+  - --socket=pulseaudio
+  - --share=network
+  - --device=all          # gpu + joysticks
+cleanup:
+  - /include
+  - /lib/pkgconfig
+  - /lib/*.la
+  - /share/man
+
+modules:
+  - name: enet
+    config-opts:
+      - --disable-static
+    sources:
+      - type: git
+        url: https://github.com/lsalzman/enet.git
+        tag: v1.3.18
+        commit: 2662c0de09e36f2a2030ccc2c528a3e4c9e8138a
+      - type: script
+        dest-filename: autogen.sh
+        commands:
+          - autoreconf -fi
+
+  - name: forsaken-data
+    buildsystem: simple
+    build-commands:
+      - mkdir -p /app/share/forsaken/data
+      - cp -r bgobjects levels models offsets sound textures txt /app/share/forsaken/data/
+      - install -Dm644 LICENSE /app/share/licenses/forsaken-data/LICENSE
+    sources:
+      - type: git
+        url: https://github.com/ForsakenX/forsaken-data.git
+        commit: 52ed2ef1c79f80753af376a50c790dcca19ef7f1
+
+  - name: forsaken
+    buildsystem: simple
+    build-commands:
+      - make -j${FLATPAK_BUILDER_N_JOBS} SDL=2 GL=1 PROFILE=0
+      - install -Dm755 projectx /app/bin/projectx
+      - install -Dm755 packaging/flatpak/forsaken.sh /app/bin/forsaken
+      - install -Dm644 packaging/flatpak/io.github.ForsakenX.Forsaken.desktop /app/share/applications/io.github.ForsakenX.Forsaken.desktop
+      - install -Dm644 packaging/flatpak/io.github.ForsakenX.Forsaken.metainfo.xml /app/share/metainfo/io.github.ForsakenX.Forsaken.metainfo.xml
+      - install -Dm644 packaging/flatpak/io.github.ForsakenX.Forsaken.png /app/share/icons/hicolor/128x128/apps/io.github.ForsakenX.Forsaken.png
+      - install -Dm644 LICENSE /app/share/licenses/forsaken/LICENSE
+    sources:
+      - type: dir
+        path: ../..
