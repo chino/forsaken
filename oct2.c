@@ -1611,8 +1611,8 @@ void DrawSimplePanel()
 					if( energy > 8 ) energy = 8;
 					AddScreenPolyText(
 						(72-energy), 
-						(float) (viewport.X + (viewport.Width>>1))-16 , 
-						(float) (viewport.Y + (viewport.Height>>1))+4 , 
+						(float) (viewport.X + (viewport.Width>>1)) - 16.0F * CrosshairScale(), 
+						(float) (viewport.Y + (viewport.Height>>1)) + 4.0F * CrosshairScale(), 
 						r, g, b, 255 );
 				}
 
@@ -1625,7 +1625,7 @@ void DrawSimplePanel()
 					AddScreenPolyTextScale( 
 						72, 
 						(float) ( (render_info.window_size.cx>>1) - (NitroFuel - 8) ), 
-						(float) (viewport.Y + (viewport.Height>>1)-7 ) ,
+						(float) (viewport.Y + (viewport.Height>>1)) - 7.0F * CrosshairScale(),
 						bar,
 						1.0F, 
 						r, g, b, 255 );
