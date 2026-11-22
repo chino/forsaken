@@ -56,6 +56,7 @@ bool  vr_invert_pitch = false;
 bool  vr_leftorium   = false;
 bool  vr_swap_sticks = false;
 bool  vr_swivel      = false;
+int   vr_fly_direction = 0;
 bool  vr_photo_mode  = false;
 
 // the panel the HUD and menus are drawn on, in metres
@@ -292,7 +293,7 @@ void vr_unscale_rect( int * x, int * y, int * w, int * h, int * sh )
 	X( xrStringToPath ) X( xrCreateActionSet ) X( xrDestroyActionSet ) X( xrCreateAction ) \
 	X( xrSuggestInteractionProfileBindings ) X( xrAttachSessionActionSets ) \
 	X( xrSyncActions ) X( xrGetActionStateFloat ) X( xrGetActionStateBoolean ) \
-	X( xrGetActionStateVector2f ) X( xrApplyHapticFeedback )
+	X( xrGetActionStateVector2f ) X( xrApplyHapticFeedback ) X( xrCreateActionSpace )
 
 static PFN_xrGetInstanceProcAddr xrGetInstanceProcAddr;
 #define X( f ) static PFN_##f f;
@@ -434,7 +435,7 @@ enum {
 	ACT_MOVE, ACT_LOOK,
 	ACT_TRIGGER_L, ACT_TRIGGER_R, ACT_GRIP_L, ACT_GRIP_R,
 	ACT_A, ACT_B, ACT_X, ACT_Y, ACT_STICK_L, ACT_STICK_R, ACT_MENU,
-	ACT_BUZZ_L, ACT_BUZZ_R,
+	ACT_BUZZ_L, ACT_BUZZ_R, ACT_AIM_L, ACT_AIM_R,
 	ACT_COUNT
 };
 
@@ -454,13 +455,16 @@ static const struct { const char * name, * desc; XrActionType type; } action_inf
 	{ "menu",          "Menu",              XR_ACTION_TYPE_BOOLEAN_INPUT },
 	{ "buzz_left",     "Left vibration",    XR_ACTION_TYPE_VIBRATION_OUTPUT },
 	{ "buzz_right",    "Right vibration",   XR_ACTION_TYPE_VIBRATION_OUTPUT },
+	{ "aim_left",      "Left hand",         XR_ACTION_TYPE_POSE_INPUT },
+	{ "aim_right",     "Right hand",        XR_ACTION_TYPE_POSE_INPUT },
 };
 
 typedef struct { int action; const char * path; } binding_t;
 
 #define L "/user/hand/left/input/"
 #define R "/user/hand/right/input/"
-#define BUZZ { ACT_BUZZ_L, "/user/hand/left/output/haptic" }, { ACT_BUZZ_R, "/user/hand/right/output/haptic" }
+#define BUZZ { ACT_BUZZ_L, "/user/hand/left/output/haptic" }, { ACT_BUZZ_R, "/user/hand/right/output/haptic" }, \
+	{ ACT_AIM_L, L "aim/pose" }, { ACT_AIM_R, R "aim/pose" }
 
 static const binding_t bind_touch[] = {
 	{ ACT_MOVE, L "thumbstick" }, { ACT_LOOK, R "thumbstick" },
@@ -527,6 +531,7 @@ static const struct { const char * profile; const binding_t * binds; } profiles[
 
 static XrActionSet xr_action_set = XR_NULL_HANDLE;
 static XrAction    xr_actions[ ACT_COUNT ];
+static XrSpace     xr_hands[ 2 ] = { XR_NULL_HANDLE, XR_NULL_HANDLE };
 static bool        actions_ready = false;
 static XrTime      menu_down_since = 0;
 static bool        menu_recentered = false;
@@ -597,6 +602,29 @@ static bool create_actions( void )
 		Msg( "openxr: xrAttachSessionActionSets failed: %s\n", xr_str( r ) );
 		return false;
 	}
+
+	for( i = 0; i < 2; i++ )
+	{
+		XrActionSpaceCreateInfo asi = { XR_TYPE_ACTION_SPACE_CREATE_INFO };
+		asi.action = xr_actions[ i == VR_HAND_LEFT ? ACT_AIM_L : ACT_AIM_R ];
+		asi.poseInActionSpace.orientation.w = 1.0f;
+		xrCreateActionSpace( xr_session, &asi, &xr_hands[ i ] );
+	}
+	return true;
+}
+
+bool vr_hand_orientation( int hand, float * quat )
+{
+	XrSpaceLocation loc = { XR_TYPE_SPACE_LOCATION };
+
+	if( !actions_ready || !xr_running || xr_hands[ hand ] == XR_NULL_HANDLE ||
+	    XR_FAILED( xrLocateSpace( xr_hands[ hand ], xr_local, frame_state.predictedDisplayTime, &loc ) ) ||
+	    !( loc.locationFlags & XR_SPACE_LOCATION_ORIENTATION_VALID_BIT ) )
+		return false;
+	quat[ 0 ] = loc.pose.orientation.x;
+	quat[ 1 ] = loc.pose.orientation.y;
+	quat[ 2 ] = loc.pose.orientation.z;
+	quat[ 3 ] = loc.pose.orientation.w;
 	return true;
 }
 
@@ -1067,7 +1095,7 @@ fail:
 
 void vr_shutdown( void )
 {
-	int eye;
+	int eye, i;
 
 	if( xr_running && xr_session != XR_NULL_HANDLE )
 		xrEndSession( xr_session );
@@ -1090,6 +1118,10 @@ void vr_shutdown( void )
 	}
 	copy_fbo = 0;
 
+	for( i = 0; i < 2; i++ )
+		if( xr_hands[ i ] != XR_NULL_HANDLE )
+			xrDestroySpace( xr_hands[ i ] );
+	xr_hands[ 0 ] = xr_hands[ 1 ] = XR_NULL_HANDLE;
 	if( xr_action_set != XR_NULL_HANDLE )
 		xrDestroyActionSet( xr_action_set );	// destroys its actions too
 	xr_action_set = XR_NULL_HANDLE;

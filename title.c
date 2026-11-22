@@ -1770,7 +1770,10 @@ MENU	MENU_VROptions = {
 		OLDMENUITEM( 200, 256, "Left-handed",			&vr_leftorium,		NULL,	SelectToggle,	DrawToggle ),
 		OLDMENUITEM( 200, 272, "Swap Sticks",			&vr_swap_sticks,	NULL,	SelectToggle,	DrawToggle ),
 		OLDMENUITEM( 200, 288, "Swivel Chair",			&vr_swivel,			NULL,	SelectToggle,	DrawToggle ),
-		OLDMENUITEM( 200, 304, "Controls",				NULL,				&MENU_Keyboard,	MenuChange,	MenuItemDrawName ),
+		OLDMENUITEM( 200, 304, "Fly Along the Ship",	&vr_fly_direction,	(void *) 0,	SelectRadioButton,	DrawRadioButton ),
+		OLDMENUITEM( 200, 320, "Fly Where You Look",	&vr_fly_direction,	(void *) 1,	SelectRadioButton,	DrawRadioButton ),
+		OLDMENUITEM( 200, 336, "Fly Where the Off Hand Points",	&vr_fly_direction,	(void *) 2,	SelectRadioButton,	DrawRadioButton ),
+		OLDMENUITEM( 200, 352, "Controls",				NULL,				&MENU_Keyboard,	MenuChange,	MenuItemDrawName ),
 		{ -1 , -1, 0, 0, 0, "" , 0, 0, NULL, NULL , NULL , NULL, NULL, 0 }
 	}
 };
@@ -9433,6 +9436,7 @@ void GetGamePrefs( void )
 	vr_leftorium					 = config_get_bool( "VRLeftorium",				false );
 	vr_swap_sticks					 = config_get_bool( "VRSwapSticks",				false );
 	vr_swivel						 = config_get_bool( "VRSwivel",					false );
+	vr_fly_direction				 = config_get_int( "VRFlyDirection",			0 );
 #endif
 
 	memset( MyPickupValid, 0, sizeof(MyPickupValid) );
@@ -9635,6 +9639,7 @@ void SetGamePrefs( void )
 		config_set_bool( "VRLeftorium",		vr_leftorium );
 		config_set_bool( "VRSwapSticks",	vr_swap_sticks );
 		config_set_bool( "VRSwivel",		vr_swivel );
+		config_set_int( "VRFlyDirection",	vr_fly_direction );
 	}
 #endif
 

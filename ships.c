@@ -21,6 +21,7 @@
 #include "lights.h"
 #ifdef VR_OPENXR
 #include "vr.h"
+extern bool VRFlyMatrix( MATRIX * m );
 #endif
 #include "sphere.h"
 #include "title.h"
@@ -2361,6 +2362,10 @@ bool GotoRoom( int16_t i, char *roomname )
 /*===================================================================ÄÄÄ*/
 void ShipMode0( GLOBALSHIP * ShipPnt , BYTE i )
 {
+#ifdef VR_OPENXR
+	VECTOR before = ShipPnt->Object.Speed, push;
+	MATRIX fly;
+#endif
 
 	// make sure the white out stuff is reset..
 	WhiteOut = 0.0F;
@@ -2415,6 +2420,20 @@ void ShipMode0( GLOBALSHIP * ShipPnt , BYTE i )
 	
 	ShipPnt->Object.Speed.x += control.right;
 	ShipPnt->Object.Speed.y += control.up;
+
+#ifdef VR_OPENXR
+	// fly where the head looks or the off hand points; the ship does not turn
+	if( vr_active() && VRFlyMatrix( &fly ) )
+	{
+		push.x = ShipPnt->Object.Speed.x - before.x;
+		push.y = ShipPnt->Object.Speed.y - before.y;
+		push.z = ShipPnt->Object.Speed.z - before.z;
+		ApplyMatrix( &fly, &push, &ShipPnt->Object.Speed );
+		ShipPnt->Object.Speed.x += before.x;
+		ShipPnt->Object.Speed.y += before.y;
+		ShipPnt->Object.Speed.z += before.z;
+	}
+#endif
 }
 
 /*===================================================================ÄÄÄÄ
