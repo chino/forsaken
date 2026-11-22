@@ -10,6 +10,7 @@ extern "C" {
 void strtoupper(char *str);
 
 int Msg( const char * fmt, ... );
+void ShowFatalError( void ); // pops up the last Msg() so the user knows why we quit
 
 void DebugPrintf_( const char * format, ... ); // no prefix timestamp
 void DebugPrintf( const char * format, ... );  // prefix timestamp
