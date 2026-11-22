@@ -9257,7 +9257,7 @@ void GetGamePrefs( void )
 
 	// tracker
 
-	config_get_strncpy( tracker_server, sizeof(tracker_server), "TrackerServer", "fly.thruhere.net" );
+	config_get_strncpy( tracker_server, sizeof(tracker_server), "TrackerServer", "" );
 	tracker_port = config_get_int( "TrackerPort", 47624 );
 	tracker_enabled = config_get_bool( "TrackerEnabled", true );
 

@@ -85,6 +85,9 @@ static void send_tracker_message( char* host, int port, char* message )
 	ENetAddress address;
 	ENetBuffer send_buffer;
 
+	if ( !host || !host[0] )
+		return;
+
 	/*
 	if(enet_initialize())
 	{
