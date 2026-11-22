@@ -31,8 +31,12 @@
 
 #include <stdio.h>
 #include "lua_common.h"
-#include "luasocket.h"
-#include "mime.h"
+
+// luasocket's own headers pull in a private compat.h that several
+// distributions (debian/ubuntu lua-socket-dev) do not install, so
+// declare the two entry points we link against directly.
+int luaopen_socket_core(lua_State *L);
+int luaopen_mime_core(lua_State *L);
 #include "main.h"
 
 lua_State *L1;

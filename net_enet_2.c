@@ -22,6 +22,17 @@
 #include "main.h"
 #include "net.h"
 #include "enet/enet.h"
+
+// enet 1.3 added a channel limit to enet_host_create and a user data
+// argument to enet_host_connect.  support both the bundled 1.2 and the
+// 1.3 series that every current distribution ships.
+#if defined(ENET_VERSION) && ENET_VERSION >= ENET_VERSION_CREATE(1,3,0)
+#define ENET_HOST_CREATE(addr,peers,in,out) enet_host_create(addr,peers,0,in,out)
+#define ENET_HOST_CONNECT(host,addr,chans) enet_host_connect(host,addr,chans,0)
+#else
+#define ENET_HOST_CREATE(addr,peers,in,out) enet_host_create(addr,peers,in,out)
+#define ENET_HOST_CONNECT(host,addr,chans) enet_host_connect(host,addr,chans)
+#endif
 #include <stdio.h>
 #include <string.h>
 
@@ -237,7 +248,7 @@ static network_return_t enet_setup( char* str_address, int port )
 	DebugPrintf("network: enet setup address %s\n",
 		address_to_str(&address));
 
-	enet_host = enet_host_create( &address, max_peers, 0, 0 );
+	enet_host = ENET_HOST_CREATE( &address, max_peers, 0, 0 );
 
 	if ( enet_host == NULL )
 	{
@@ -267,7 +278,7 @@ static int enet_connect( char* str_address, int port )
 	DebugPrintf("network: enet connect to address %s\n",
 		address_to_str(&address));
 
-	peer = enet_host_connect( enet_host, &address, max_channels );
+	peer = ENET_HOST_CONNECT( enet_host, &address, max_channels );
 
 	if (peer == NULL)
 	{
@@ -1311,7 +1322,7 @@ static void new_packet( ENetEvent * event )
 					network_peer_data_t * new_peer_data;
 					DebugPrintf("network: host told us to connect to player %d address %s\n",
 						packet->id, address_to_str( address ));
-					new_peer = enet_host_connect( enet_host, address, max_channels );
+					new_peer = ENET_HOST_CONNECT( enet_host, address, max_channels );
 					if(!new_peer)
 					{
 						DebugPrintf("network: enet host connect returned NULL.\n");
