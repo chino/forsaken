@@ -8130,7 +8130,8 @@ void GetDefaultPilot(void)
 		// initialize this biker
 		InitBikerName( pilot_name );
 
-	// read in the biker config
+	// start from the default controls, then read in the biker config
+	*player_config = default_config;
 	read_config( player_config, biker_config );
 
 	// if the bike selected is not valid
