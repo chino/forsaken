@@ -71,7 +71,7 @@ MACOSX=$(shell uname -a | grep -qi darwin && echo 1 || echo 0)
 LUA_MIME=$(shell pkg-config --exists $(LUA)-mime && echo $(LUA)-mime)
 
 # which version of sdl do you want to ask pkgconfig for ?
-SDL=1
+SDL=2
 ifeq ($(SDL),1)
   SDL_=sdl
 else
