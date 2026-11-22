@@ -453,6 +453,9 @@ static void append_player( network_player_t * player )
 	// TODO - this should never happen but it does
 	if(!player)
 		return;
+	// already linked in, doing it again would loop the list
+	if( player == network_players.first || player->prev != NULL )
+		return;
 	player->prev = network_players.last;
 	if(player->prev)
 		player->prev->next = player;
@@ -467,6 +470,8 @@ static void destroy_player( network_player_t * player )
 {
 	ENetPeer * peer = player->data;
 	network_peer_data_t * peer_data = NULL;
+	// players are only linked in once they are playing
+	int linked = ( player == network_players.first || player->prev != NULL );
 	if( peer )
 		peer_data = peer->data;
 
@@ -479,7 +484,8 @@ static void destroy_player( network_player_t * player )
 	if( player == network_players.last  ) network_players.last  = player->prev;
 
 	// drop the count
-	network_players.length--;
+	if( linked )
+		network_players.length--;
 
 	// remove peer/player associations
 	player->data = NULL;
@@ -933,6 +939,13 @@ static void send_new_player_event_for_existing_players( network_player_t * joine
 static void new_player( ENetPeer * peer )
 {
 	network_peer_data_t * peer_data = peer->data;
+
+	if( peer_data->player == NULL || peer_data->state == PLAYING )
+	{
+		DebugPrintf("network error: ignoring new player message for %hhu, no player or already playing\n",
+			peer_data->id);
+		return;
+	}
 
 	// we are not even connected yet...
 	// only thing that should cause this is host telling us to connect to someone
