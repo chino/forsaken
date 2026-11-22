@@ -3644,13 +3644,17 @@ DebugPrintf("2 vsync = %d\n",render_info.vsync);
 		return false;
 	}
 
-	// set default font scaling by resolution
-	TextScaleSlider.value = 1;
-	if(render_info.default_mode.w < 1024)
-			TextScaleSlider.value = 0;
-	else if(render_info.default_mode.w >= 1280)
-			TextScaleSlider.value = 2;
-	SetTextScale(&TextScaleSlider);
+	// pick a font scale from the resolution only while the player has never
+	// chosen one: a saved TextScale is theirs and must survive a mode change
+	if( config_get_int( "TextScale", -1 ) < 0 )
+	{
+		TextScaleSlider.value = 1;
+		if(render_info.default_mode.w < 1024)
+				TextScaleSlider.value = 0;
+		else if(render_info.default_mode.w >= 1280)
+				TextScaleSlider.value = 2;
+		SetTextScale(&TextScaleSlider);
+	}
 
 	SetGamePrefs();
 	return true;
