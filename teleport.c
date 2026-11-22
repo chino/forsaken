@@ -160,23 +160,23 @@ bool TeleportsLoad( char * Filename )
 		Buffer = (char *) Uint16Pnt;
 		floatpnt = (float *) Buffer;
 
-		TPpnt->Pos.x = *floatpnt++;
-		TPpnt->Pos.y = *floatpnt++;
-		TPpnt->Pos.z = *floatpnt++;
+		TPpnt->Pos.x = read_float( &floatpnt );
+		TPpnt->Pos.y = read_float( &floatpnt );
+		TPpnt->Pos.z = read_float( &floatpnt );
 
 #if TELEPORTS_VERSION_NUMBER >= 2
-		TPpnt->Dir.x = *floatpnt++;
-		TPpnt->Dir.y = *floatpnt++;
-		TPpnt->Dir.z = *floatpnt++;
+		TPpnt->Dir.x = read_float( &floatpnt );
+		TPpnt->Dir.y = read_float( &floatpnt );
+		TPpnt->Dir.z = read_float( &floatpnt );
 
-		TPpnt->Up.x = *floatpnt++;
-		TPpnt->Up.y = *floatpnt++;
-		TPpnt->Up.z = *floatpnt++;
+		TPpnt->Up.x = read_float( &floatpnt );
+		TPpnt->Up.y = read_float( &floatpnt );
+		TPpnt->Up.z = read_float( &floatpnt );
 #endif
 
-		TPpnt->half_size.x = *floatpnt++;
-		TPpnt->half_size.y = *floatpnt++;
-		TPpnt->half_size.z = *floatpnt++;
+		TPpnt->half_size.x = read_float( &floatpnt );
+		TPpnt->half_size.y = read_float( &floatpnt );
+		TPpnt->half_size.z = read_float( &floatpnt );
 		Buffer = (char *) floatpnt;
   
 		Uint16Pnt = (u_int16_t *) Buffer;
@@ -201,10 +201,10 @@ bool TeleportsLoad( char * Filename )
 			floatpnt = (float * ) Buffer;
 			for( j = 0 ; j < TPpnt->num_sides ; j++ )
 			{
-				ZonePnt->normal.x = *floatpnt++;
-				ZonePnt->normal.y = *floatpnt++;
-				ZonePnt->normal.z = *floatpnt++;
-				ZonePnt->offset   = *floatpnt++;
+				ZonePnt->normal.x = read_float( &floatpnt );
+				ZonePnt->normal.y = read_float( &floatpnt );
+				ZonePnt->normal.z = read_float( &floatpnt );
+				ZonePnt->offset   = read_float( &floatpnt );
 				ZonePnt++;
 			}
 			Buffer = (char*) floatpnt;

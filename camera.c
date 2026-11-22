@@ -112,15 +112,15 @@ bool Cameraload( char * Filename )
 		CamPnt->Group = *int16Pnt++;
 		FloatPnt = (float*) int16Pnt;
 		
-		CamPnt->Pos.x = *FloatPnt++;
-		CamPnt->Pos.y = *FloatPnt++;
-		CamPnt->Pos.z = *FloatPnt++;
-		CamPnt->Dir.x = *FloatPnt++;
-		CamPnt->Dir.y = *FloatPnt++;
-		CamPnt->Dir.z = *FloatPnt++;
-		CamPnt->Up.x = *FloatPnt++;
-		CamPnt->Up.y = *FloatPnt++;
-		CamPnt->Up.z = *FloatPnt++;
+		CamPnt->Pos.x = read_float( &FloatPnt );
+		CamPnt->Pos.y = read_float( &FloatPnt );
+		CamPnt->Pos.z = read_float( &FloatPnt );
+		CamPnt->Dir.x = read_float( &FloatPnt );
+		CamPnt->Dir.y = read_float( &FloatPnt );
+		CamPnt->Dir.z = read_float( &FloatPnt );
+		CamPnt->Up.x = read_float( &FloatPnt );
+		CamPnt->Up.y = read_float( &FloatPnt );
+		CamPnt->Up.z = read_float( &FloatPnt );
 		Buffer = (char*) FloatPnt;
 		Tempv.x = CamPnt->Pos.x + CamPnt->Dir.x;
 		Tempv.y = CamPnt->Pos.y + CamPnt->Dir.y;

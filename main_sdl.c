@@ -2,7 +2,7 @@
 #include "util.h"
 #include "version.h"
 #include "main_sdl.h"
-#ifdef GL
+#if defined(GL) && !defined(GLES)
 #include "SDL_opengl.h"
 #endif
 
@@ -52,7 +52,11 @@ bool sdl_init( void )
 
 #define NUMBER_MODES 19
 render_display_mode_t video_modes[NUMBER_MODES] = {
+#ifdef PANDORA
+{800,480}, // the Pandora lcd
+#else
 {0,0}, // current video mode of the desktop
+#endif
 {640,480},
 {800,600}, // default window mode
 {1024,768},
@@ -138,7 +142,12 @@ static void set_opengl_settings( void )
 	SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER,	  1);
 
 #if SDL_VERSION_ATLEAST(2,0,0)
-#if GL == 3
+#if defined(GLES)
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 1);
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
+	SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 16);
+#elif GL == 3
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
 	// TODO - this isn't only mac osx specific is it ?
@@ -240,10 +249,55 @@ static u_int32_t create_window_flags( void )
 
 
 
+#ifdef GLES
+
+// resize the window on mode changes so the context and textures survive
+static bool create_gles_window( u_int32_t window_flags )
+{
+	if(render_info.window)
+	{
+		SDL_SetWindowFullscreen(render_info.window, 0);
+		SDL_SetWindowSize(render_info.window, render_info.ThisMode.w, render_info.ThisMode.h);
+		if(window_flags & SDL_WINDOW_FULLSCREEN)
+			SDL_SetWindowFullscreen(render_info.window, SDL_WINDOW_FULLSCREEN);
+	}
+	else
+	{
+		render_info.window = SDL_CreateWindow(
+			"ProjectX",
+			SDL_WINDOWPOS_CENTERED,
+			SDL_WINDOWPOS_CENTERED,
+			render_info.ThisMode.w,
+			render_info.ThisMode.h,
+			window_flags
+			);
+		if(!render_info.window)
+		{
+			Msg("main_sdl: failed to create window: %s\n",SDL_GetError());
+			return false;
+		}
+		if(!SDL_GL_CreateContext(render_info.window))
+		{
+			Msg("main_sdl: failed to create GLES 1.1 context: %s\n",SDL_GetError());
+			return false;
+		}
+	}
+	DebugPrintf("vsync set to %d\n",render_info.vsync);
+	if(SDL_GL_SetSwapInterval(render_info.vsync ? 1 : 0) < 0)
+		DebugPrintf("main_sdl: failed to set swap interval: %s\n",SDL_GetError());
+	return true;
+}
+
+#endif
+
 static bool create_video_surface( u_int32_t window_flags, u_int32_t renderer_flags )
 {
 #ifndef RENDER_DISABLED
-  #if SDL_VERSION_ATLEAST(2,0,0)
+  #ifdef GLES
+	(void) renderer_flags;
+	if(!create_gles_window( window_flags ))
+		return false;
+  #elif SDL_VERSION_ATLEAST(2,0,0)
 	render_info.window = SDL_CreateWindow(
 		"ProjectX",
 		SDL_WINDOWPOS_CENTERED,
@@ -348,7 +402,9 @@ bool sdl_init_video( void )
 
 void sdl_render_present( render_info_t * info )
 {
-#if SDL_VERSION_ATLEAST(2,0,0)
+#ifdef GLES
+	SDL_GL_SwapWindow(info->window);
+#elif SDL_VERSION_ATLEAST(2,0,0)
 	SDL_RenderPresent(info->renderer);
 #else
 	SDL_GL_SwapBuffers();

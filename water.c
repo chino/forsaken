@@ -221,19 +221,19 @@ bool WaterLoad( void )
 		WO->Group = *Uint16Pnt++;
 		FloatPnt = (float*) Uint16Pnt;
 
-		WO->Pos.x = *FloatPnt++;
-		WO->Pos.y = *FloatPnt++;
-		WO->Pos.z = *FloatPnt++;
+		WO->Pos.x = read_float( &FloatPnt );
+		WO->Pos.y = read_float( &FloatPnt );
+		WO->Pos.z = read_float( &FloatPnt );
 		WO->offset = 0.0F;
 		GroupWaterLevel[WO->Group] = WO->Pos.y + WATER_CELLSIZE;
 
-		WO->XSize = *FloatPnt++;
-		WO->YSize = *FloatPnt++;
+		WO->XSize = read_float( &FloatPnt );
+		WO->YSize = read_float( &FloatPnt );
 
-		WO->uTL = *FloatPnt++;	// Uv coords...	Top Left...
-		WO->vTL = *FloatPnt++;	// Uv coords...	Top Left...
-		WO->uBR = *FloatPnt++;	// Uv coords...	Bottom Right...
-		WO->vBR = *FloatPnt++;	// Uv coords...	Bottom Right...
+		WO->uTL = read_float( &FloatPnt );	// Uv coords...	Top Left...
+		WO->vTL = read_float( &FloatPnt );	// Uv coords...	Top Left...
+		WO->uBR = read_float( &FloatPnt );	// Uv coords...	Bottom Right...
+		WO->vBR = read_float( &FloatPnt );	// Uv coords...	Bottom Right...
 
 		WO->uRange = WO->uBR - WO->uTL;
 		WO->vRange = WO->vBR - WO->vTL;
@@ -272,12 +272,12 @@ bool WaterLoad( void )
 		
 		FloatPnt = (float*) Buffer;
 
-		WO->MaxLevel = *FloatPnt++;
-		WO->MinLevel = *FloatPnt++;
-		WO->FillRate = *FloatPnt++ / 60.0F;
-		WO->DrainRate = *FloatPnt++ / 60.0F;
-		WO->Density = *FloatPnt++;
-		WO->MaxWaveSize = *FloatPnt++;
+		WO->MaxLevel = read_float( &FloatPnt );
+		WO->MinLevel = read_float( &FloatPnt );
+		WO->FillRate = read_float( &FloatPnt ) / 60.0F;
+		WO->DrainRate = read_float( &FloatPnt ) / 60.0F;
+		WO->Density = read_float( &FloatPnt );
+		WO->MaxWaveSize = read_float( &FloatPnt );
 		Buffer = (char *) FloatPnt;		
 
 		Uint16Pnt = (u_int16_t *) Buffer;

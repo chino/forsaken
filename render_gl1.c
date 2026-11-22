@@ -55,14 +55,101 @@ bool FSCreateDynamic2dVertexBuffer(RENDEROBJECT *renderObject, int numVertices)
 bool FSLockPretransformedVertexBuffer(RENDEROBJECT *renderObject, TLVERTEX **verts)
 {*verts = (void*)renderObject->lpVertexBuffer; return true;}
 
-static void set_color( COLOR c )
+// COLOR is the value loaded from the files
+// it's packed as uchar[4] (bgra) and gl expects (rgba)
+// so we flip the red/blue values with each other
+static COLOR bgra_to_rgba( COLOR c )
 {
-	// COLOR is the value loaded from the files
-	// it's packed as uchar[4] (bgra) and glColor expects (rgba)
-	// so we flip the red/blue values with each other
-	c = (c & 0xff00ff00) | ((c & 0x00ff0000) >> 16) | ((c & 0x000000ff) << 16);
-	glColor4ubv((GLubyte*)&c);
+	return (c & 0xff00ff00) | ((c & 0x00ff0000) >> 16) | ((c & 0x000000ff) << 16);
 }
+
+#ifdef GLES
+
+// GLES has no glBegin/glEnd, collect the vertices and use glDrawArrays
+
+static struct
+{
+	GLfloat * xyz;
+	GLfloat * uv;
+	COLOR   * rgba;
+	int       count;
+	int       size;
+	GLenum    mode;
+} batch;
+
+static void begin_batch( GLenum mode )
+{
+	batch.mode  = mode;
+	batch.count = 0;
+}
+
+// xmem's realloc does not accept NULL, so allocate the first arrays
+static void * grow( void * p, size_t size )
+{
+	return p ? realloc( p, size ) : malloc( size );
+}
+
+static void add_vert( float x, float y, float z, float tu, float tv, COLOR c )
+{
+	if( batch.count == batch.size )
+	{
+		int size = batch.size ? batch.size * 2 : 4096;
+		GLfloat * xyz  = grow( batch.xyz,  size * 3 * sizeof(GLfloat) );
+		GLfloat * uv   = grow( batch.uv,   size * 2 * sizeof(GLfloat) );
+		COLOR   * rgba = grow( batch.rgba, size * sizeof(COLOR) );
+		if( xyz )  batch.xyz  = xyz;
+		if( uv )   batch.uv   = uv;
+		if( rgba ) batch.rgba = rgba;
+		if( !xyz || !uv || !rgba )
+			return; // out of memory, drop the vertex
+		batch.size = size;
+	}
+	batch.xyz[ batch.count * 3 + 0 ] = x;
+	batch.xyz[ batch.count * 3 + 1 ] = y;
+	batch.xyz[ batch.count * 3 + 2 ] = z;
+	batch.uv[ batch.count * 2 + 0 ] = tu;
+	batch.uv[ batch.count * 2 + 1 ] = tv;
+	batch.rgba[ batch.count ] = bgra_to_rgba( c );
+	batch.count++;
+}
+
+static void end_batch( void )
+{
+	if( !batch.count )
+		return;
+	glEnableClientState( GL_VERTEX_ARRAY );
+	glEnableClientState( GL_COLOR_ARRAY );
+	glEnableClientState( GL_TEXTURE_COORD_ARRAY );
+	glVertexPointer( 3, GL_FLOAT, 0, batch.xyz );
+	glColorPointer( 4, GL_UNSIGNED_BYTE, 0, batch.rgba );
+	glTexCoordPointer( 2, GL_FLOAT, 0, batch.uv );
+	glDrawArrays( batch.mode, 0, batch.count );
+	glDisableClientState( GL_TEXTURE_COORD_ARRAY );
+	glDisableClientState( GL_COLOR_ARRAY );
+	glDisableClientState( GL_VERTEX_ARRAY );
+}
+
+#else // !GLES
+
+static void begin_batch( GLenum mode )
+{
+	glBegin( mode );
+}
+
+static void add_vert( float x, float y, float z, float tu, float tv, COLOR c )
+{
+	c = bgra_to_rgba( c );
+	glColor4ubv( (GLubyte*) &c );
+	glTexCoord2f( tu, tv );
+	glVertex3f( x, y, z );
+}
+
+static void end_batch( void )
+{
+	glEnd();
+}
+
+#endif // GLES
 
 int render_color_blend_red   = 0;
 int render_color_blend_green = 0;
@@ -316,21 +403,15 @@ static void draw_vert( void * _vert, bool orthographic )
 	TLVERTEX * tlvert = (TLVERTEX*) _vert;
 	if(orthographic)
 	{
-		set_color( tlvert->color );
-		glTexCoord2f( tlvert->tu, tlvert->tv );
-		glVertex2f( tlvert->x, tlvert->y );
+		add_vert( tlvert->x, tlvert->y, 0.0f, tlvert->tu, tlvert->tv, tlvert->color );
 	}
 	else
 	{
-#ifdef NEW_LIGHTING
 		COLOR c = vert->color;
+#ifdef NEW_LIGHTING
 		light_vert( vert, (u_int8_t*) &c );
-		set_color( c );
-#else
-		set_color( vert->color );
 #endif
-		glTexCoord2f( vert->tu, vert->tv );
-		glVertex3f( vert->x, vert->y, vert->z );
+		add_vert( vert->x, vert->y, vert->z, vert->tu, vert->tv, c );
 	}
 }
 
@@ -368,7 +449,11 @@ bool draw_render_object( RENDEROBJECT *renderObject, int primitive_type, bool or
 		glMatrixMode(GL_PROJECTION);
 		glPushMatrix();
 		glLoadIdentity();
+#ifdef GLES
+		glOrthof(0.0f, (float)render_info.ThisMode.w, 0.0f, (float)render_info.ThisMode.h, -1.0f, 1.0f);
+#else
 		gluOrtho2D(0.0, (double)render_info.ThisMode.w, 0.0, (double)render_info.ThisMode.h);
+#endif
 		// These next two steps allow us to specify screen location from top/left offets
 		// invert the y axis, down is positive
 		glScalef(1, -1, 1);
@@ -392,7 +477,7 @@ bool draw_render_object( RENDEROBJECT *renderObject, int primitive_type, bool or
 			glBindTexture(GL_TEXTURE_2D, texture);
 		}
 
-		glBegin(primitive_type);
+		begin_batch(primitive_type);
 
 		// draw vertex list using index list
 		if(renderObject->lpIndexBuffer)
@@ -419,7 +504,7 @@ bool draw_render_object( RENDEROBJECT *renderObject, int primitive_type, bool or
 					draw_vert( &verts[i], orthographic );
 		}
 		
-		glEnd();
+		end_batch();
 
 		if( renderObject->textureGroups[group].texture )
 			glDisable(GL_TEXTURE_2D);

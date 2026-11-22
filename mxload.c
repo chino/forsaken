@@ -261,15 +261,16 @@ bool Mxload( char * Filename, MXLOADHEADER * Mxloadheader , bool Panel, bool Sto
 			/*	copy the vertex data into the execute buffer	*/
 			for ( i=0 ; i<num_vertices; i++)
 			{
-				LPOLDLVERTEX old = lpLVERTEX2;
+				OLDLVERTEX old;
+				READ_UNALIGNED( old, lpLVERTEX2 );
 
-				lpLVERTEX[i].x = old->x;
-				lpLVERTEX[i].y = old->y;
-				lpLVERTEX[i].z = old->z;
-				lpLVERTEX[i].tu = old->tu;
-				lpLVERTEX[i].tv = old->tv;
+				lpLVERTEX[i].x = old.x;
+				lpLVERTEX[i].y = old.y;
+				lpLVERTEX[i].z = old.z;
+				lpLVERTEX[i].tu = old.tu;
+				lpLVERTEX[i].tv = old.tv;
 
-				color = old->color;
+				color = old.color;
 				a = (color>>24)&255;
 				r = (color>>16)&255;
 				g = (color>>8)&255;
@@ -292,7 +293,8 @@ bool Mxload( char * Filename, MXLOADHEADER * Mxloadheader , bool Panel, bool Sto
 
 				color = RGBA_MAKE( r , g , b , a  );
 				lpLVERTEX[i].color = color;
-				lpLVERTEX2->color = color;
+				old.color = color;
+				WRITE_UNALIGNED( lpLVERTEX2, old );
 
 				// nothing used specular so we removed it from LVERTEX
 				//lpLVERTEX[i]->specular = lpLVERTEX2->specular;
@@ -420,9 +422,12 @@ bool Mxload( char * Filename, MXLOADHEADER * Mxloadheader , bool Panel, bool Sto
 				/*	copy the faces data into the execute buffer	*/
 				for( e=0; e<num_triangles; e++)
 				{
-					FacePnt.v1 = MFacePnt->v1;
-					FacePnt.v2 = MFacePnt->v2;
-					FacePnt.v3 = MFacePnt->v3;
+					MFACE face;
+					READ_UNALIGNED( face, MFacePnt );
+
+					FacePnt.v1 = face.v1;
+					FacePnt.v2 = face.v2;
+					FacePnt.v3 = face.v3;
 
 					lpIndices[ibIndex] = FacePnt.v1;
 					ibIndex++;
@@ -431,15 +436,16 @@ bool Mxload( char * Filename, MXLOADHEADER * Mxloadheader , bool Panel, bool Sto
 					lpIndices[ibIndex] = FacePnt.v3;
 					ibIndex++;
 
-          lpNormals->nx = MFacePnt->nx;
-          lpNormals->ny = MFacePnt->ny;
-          lpNormals->nz = MFacePnt->nz;
+          lpNormals->nx = face.nx;
+          lpNormals->ny = face.ny;
+          lpNormals->nz = face.nz;
 
-					if ( MFacePnt->pad & 1 )
+					if ( face.pad & 1 )
 					{
 						// colourkey triangle found
 						colourkey++;
-						MFacePnt->pad &= ~1;
+						face.pad &= ~1;
+						WRITE_UNALIGNED( MFacePnt, face );
 					}
 //					FacePnt->wFlags = D3DTRIFLAG_EDGEENABLETRIANGLE;
 					FixUV( &FacePnt, lpBufStart, tpage, Mxloadheader->Group[group].originalVerts[execbuf]);
@@ -648,8 +654,8 @@ bool Mxload( char * Filename, MXLOADHEADER * Mxloadheader , bool Panel, bool Sto
 						FloatPnt = (float*) Buffer;
 						for( o = 0 ; o < vertices*frames ; o++ )
 						{
-							TanimUV->u = *FloatPnt++;
-							TanimUV->v = *FloatPnt++;
+							TanimUV->u = read_float( &FloatPnt );
+							TanimUV->v = read_float( &FloatPnt );
 							TanimUV++;
 						}
 						Buffer = ( char * ) FloatPnt;
@@ -704,15 +710,15 @@ bool Mxload( char * Filename, MXLOADHEADER * Mxloadheader , bool Panel, bool Sto
 			{
 				FirePointPtr->ID = *Uint16Pnt++;				// ID ( u_int16_t )
 				FloatPnt = (float *) Uint16Pnt;
-				FirePointPtr->Pos.x = *FloatPnt++;				// Pos ( 3 floats )
-				FirePointPtr->Pos.y = *FloatPnt++;
-				FirePointPtr->Pos.z = *FloatPnt++;
-				FirePointPtr->Dir.x = *FloatPnt++;				// Dir ( 3 floats )
-				FirePointPtr->Dir.y = *FloatPnt++;
-				FirePointPtr->Dir.z = *FloatPnt++;
-				FirePointPtr->Up.x = *FloatPnt++;				// Up ( 3 floats )
-				FirePointPtr->Up.y = *FloatPnt++;
-				FirePointPtr->Up.z = *FloatPnt++;
+				FirePointPtr->Pos.x = read_float( &FloatPnt );				// Pos ( 3 floats )
+				FirePointPtr->Pos.y = read_float( &FloatPnt );
+				FirePointPtr->Pos.z = read_float( &FloatPnt );
+				FirePointPtr->Dir.x = read_float( &FloatPnt );				// Dir ( 3 floats )
+				FirePointPtr->Dir.y = read_float( &FloatPnt );
+				FirePointPtr->Dir.z = read_float( &FloatPnt );
+				FirePointPtr->Up.x = read_float( &FloatPnt );				// Up ( 3 floats )
+				FirePointPtr->Up.y = read_float( &FloatPnt );
+				FirePointPtr->Up.z = read_float( &FloatPnt );
 				Uint16Pnt = (u_int16_t *) FloatPnt;
 				FirePointPtr++;
 			}
@@ -742,18 +748,18 @@ bool Mxload( char * Filename, MXLOADHEADER * Mxloadheader , bool Panel, bool Sto
 			{
 				SpotFXPtr->Type = *Uint16Pnt++;				// Type ( u_int16_t )
 				FloatPnt = (float *) Uint16Pnt;
-				SpotFXPtr->Pos.x = *FloatPnt++;				// Pos ( 3 floats )
-				SpotFXPtr->Pos.y = *FloatPnt++;
-				SpotFXPtr->Pos.z = *FloatPnt++;
-				SpotFXPtr->DirVector.x = *FloatPnt++;		// Dir ( 3 floats )
-				SpotFXPtr->DirVector.y = *FloatPnt++;
-				SpotFXPtr->DirVector.z = *FloatPnt++;
-				SpotFXPtr->UpVector.x = *FloatPnt++;		// Up ( 3 floats )
-				SpotFXPtr->UpVector.y = *FloatPnt++;
-				SpotFXPtr->UpVector.z = *FloatPnt++;
-				SpotFXPtr->StartDelay = ( *FloatPnt++ * ANIM_SECOND );	// Start Delay
-				SpotFXPtr->ActiveDelay = ( *FloatPnt++ * ANIM_SECOND );	// Active Delay
-				SpotFXPtr->InactiveDelay = ( *FloatPnt++ * ANIM_SECOND );	// Inactive Delay
+				SpotFXPtr->Pos.x = read_float( &FloatPnt );				// Pos ( 3 floats )
+				SpotFXPtr->Pos.y = read_float( &FloatPnt );
+				SpotFXPtr->Pos.z = read_float( &FloatPnt );
+				SpotFXPtr->DirVector.x = read_float( &FloatPnt );		// Dir ( 3 floats )
+				SpotFXPtr->DirVector.y = read_float( &FloatPnt );
+				SpotFXPtr->DirVector.z = read_float( &FloatPnt );
+				SpotFXPtr->UpVector.x = read_float( &FloatPnt );		// Up ( 3 floats )
+				SpotFXPtr->UpVector.y = read_float( &FloatPnt );
+				SpotFXPtr->UpVector.z = read_float( &FloatPnt );
+				SpotFXPtr->StartDelay = ( read_float( &FloatPnt ) * ANIM_SECOND );	// Start Delay
+				SpotFXPtr->ActiveDelay = ( read_float( &FloatPnt ) * ANIM_SECOND );	// Active Delay
+				SpotFXPtr->InactiveDelay = ( read_float( &FloatPnt ) * ANIM_SECOND );	// Inactive Delay
 				Int16Pnt = (int16_t *) FloatPnt;
 				SpotFXPtr->Primary = (int8_t) *Int16Pnt++;	// Primary ( int16_t )
 				SpotFXPtr->Secondary = (int8_t) *Int16Pnt++;	// Secondary ( int16_t )
@@ -793,8 +799,8 @@ bool Mxload( char * Filename, MXLOADHEADER * Mxloadheader , bool Panel, bool Sto
 				}
 
 				FloatPnt = (float *) Int8Pnt;
-				SpotFXPtr->SoundFXVolume = *FloatPnt++;
-				SpotFXPtr->SoundFXSpeed = *FloatPnt++;
+				SpotFXPtr->SoundFXVolume = read_float( &FloatPnt );
+				SpotFXPtr->SoundFXSpeed = read_float( &FloatPnt );
 				Uint16Pnt = (u_int16_t *) FloatPnt;
 #else
 				Uint16Pnt = (u_int16_t *) Uint32Pnt;

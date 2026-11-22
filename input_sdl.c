@@ -227,6 +227,17 @@ void app_quit( void )
 
 void app_keyboard( SDL_KeyboardEvent * key )
 {
+#ifdef PANDORA
+	// shoulder buttons are the left / right mouse buttons
+	if( key->keysym.sym == SDLK_RSHIFT || key->keysym.sym == SDLK_RCTRL )
+	{
+		int button = ( key->keysym.sym == SDLK_RSHIFT ) ? 0 : 2;
+		mouse_state.buttons[ button ] = ( key->type == SDL_KEYDOWN );
+		if( key->type == SDL_KEYDOWN )
+			input_buffer_send( button + LEFT_MOUSE );
+		return;
+	}
+#endif
 	if( key->type == SDL_KEYUP )
 	{
 		if( key->keysym.sym == SDLK_F12 && key->keysym.mod & KMOD_SHIFT )

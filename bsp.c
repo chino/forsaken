@@ -116,17 +116,19 @@ static bool BSP_Loadtree( BSP_TREE *t, char **Buffer )
 	// pack on node heirachy
 	for( e = 0 ; e < t->NumNodes ; e++ )
 	{
-		New->Normal = Raw->Normal;
-		New->Offset = Raw->Offset;
-		New->Colour = Raw->Colour;
-		if( !Raw->Front ) New->Front = NULL;
+		BSP_RAWNODE node;
+		READ_UNALIGNED( node, Raw );
+		New->Normal = node.Normal;
+		New->Offset = node.Offset;
+		New->Colour = node.Colour;
+		if( !node.Front ) New->Front = NULL;
 		else{
-			New->Front = t->Root + Raw->Front;
+			New->Front = t->Root + node.Front;
 			New->Front->Parent = New;
 		}
-		if( !Raw->Back ) New->Back = NULL;
+		if( !node.Back ) New->Back = NULL;
 		else{
-			New->Back  = t->Root + Raw->Back;
+			New->Back  = t->Root + node.Back;
 			New->Back->Parent = New;
 		}
 		New++;
@@ -148,10 +150,10 @@ static bool BSP_LoadPortal( BSP_PORTAL *p, char **Buffer )
 	int16_tpnt = (int16_t *) *Buffer;
 	p->group = *int16_tpnt++;
 	floatpnt = (float *) int16_tpnt;
-	p->normal.x = *floatpnt++;
-	p->normal.y = *floatpnt++;
-	p->normal.z = *floatpnt++;
-	p->offset = *floatpnt++;
+	p->normal.x = read_float( &floatpnt );
+	p->normal.y = read_float( &floatpnt );
+	p->normal.z = read_float( &floatpnt );
+	p->offset = read_float( &floatpnt );
 	*Buffer = (char *) floatpnt;
 
 	return BSP_Loadtree( &p->bsp, Buffer );
