@@ -49,6 +49,7 @@ sound_source_t * sound_source( sound_buffer_t * buffer );
 
 void sound_play( sound_source_t * s );
 void sound_play_looping( sound_source_t * s );
+void sound_pause( sound_source_t * s );
 bool sound_is_playing( sound_source_t * s );
 void sound_stop( sound_source_t * s );
 void sound_release_source( sound_source_t * s );
