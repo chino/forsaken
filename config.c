@@ -17,6 +17,10 @@
 #include "config.h"
 #include "util.h"
 
+#if SDL_VERSION_ATLEAST(2,0,0)
+#include "sdl2_scancode_keys.h"
+#endif
+
 extern LIST BikeList;
 extern LIST BikeComputer;
 extern TEXT	MacroText1;
@@ -275,11 +279,18 @@ USERCONFIG *player_config = &my_controls;
 
 char * get_key_name( int i )
 {
+#if SDL_VERSION_ATLEAST(2,0,0)
+	// bindings are scancodes on sdl2, unnamed ones are ""
+	const char * name = SDL_GetScancodeName( (SDL_Scancode) i );
+	if( !*name )
+		return NULL;
+#else
 	char * name = SDL_GetKeyName(i);
 	if(0==strcasecmp(name,"unknown key"))
 		return NULL;
+#endif
 	return convert_char( ' ', '_', 
-		strdup(name)
+		strdup((char*)name)
 	);
 }
 
@@ -1490,6 +1501,17 @@ const char *key_char( int keycode )
 {
 	// get sdl name for keycode
 	static char * name;
+#if SDL_VERSION_ATLEAST(2,0,0)
+	// called with a key code or character, not a binding
+	if( keycode >= ' ' && keycode < 127 )
+	{
+		static char c[2];
+		c[0] = (char) keycode;
+		c[1] = 0;
+		return c;
+	}
+	return SDL_GetKeyName( keycode );
+#endif
 	name = (char*) key_name( keycode );
 
 	if ( name )
