@@ -26,6 +26,9 @@
 #include "object.h"
 #include "networking.h"
 #include "ships.h"
+#ifdef VR_OPENXR
+#include "vr.h"
+#endif
 
 
 extern MENU MENU_NEW_Battle;
@@ -1613,6 +1616,13 @@ void ReadJoystickInput(SHIPCONTROL *ctrl, int joysticknum)
 			/* if the axis is inverted */
 			if ( joyaxis->inverted )
 				amount  = -amount;
+
+#ifdef VR_OPENXR
+			/* the headset controllers turn at their own rate */
+			if ( ShipAction >= SHIPACTION_RotateUp && ShipAction <= SHIPACTION_RotateRight &&
+				!strcasecmp( JoystickInfo[ joysticknum ].Name, VR_JOYSTICK_NAME ) )
+				amount *= vr_turn_speed / 100.0F;
+#endif
 
 			/* perform the action */
 			DoShipAction( ctrl, ShipAction, framelag * amount );

@@ -19,6 +19,9 @@
 #include "secondary.h"
 #include "mxaload.h"
 #include "lights.h"
+#ifdef VR_OPENXR
+#include "vr.h"
+#endif
 #include "sphere.h"
 #include "title.h"
 #include "trigarea.h"
@@ -941,6 +944,12 @@ bool ProcessShips()
 					AccellDecell( &ShipObjPnt->Angle.y , TurnDecell );
 			 		AccellDecell( &ShipObjPnt->Angle.x , TurnDecell );
 			 		AccellDecell( &ShipObjPnt->Angle.z , RollDecell );
+#ifdef VR_OPENXR
+					// VR can level the ship even when the pilot's own setting is off
+					if( vr_active() && vr_auto_level && !player_config->autolevel_rate )
+						ShipObjPnt->Autolevel = AutoLevelRot( i, AutoLevel * 0.05F * framelag );
+					else
+#endif
 					ShipObjPnt->Autolevel = AutoLevelRot( i, AutoLevel * player_config->autolevel_rate * framelag );
 			 		AccellDecell( &ShipObjPnt->Bank , BankDecell );
 					AccellDecell( &ShipObjPnt->Speed.x , MoveDecell );
@@ -1679,6 +1688,11 @@ void BobShip( u_int16_t ship, VECTOR *bob )
 
 	move = Ships[ ship ].Object.Speed;
 	move_len = (float) sqrt( move.x * move.x + move.y * move.y + move.z * move.z );
+#ifdef VR_OPENXR
+	// the drift moves the whole view in a headset
+	if ( vr_active() && !vr_ship_bob && ship == WhoIAm )
+		move_len = MOVE_TOLERANCE;
+#endif
 	if ( move_len < MOVE_TOLERANCE && !DebugInfo )
 	{
 		move.x = BOB_XSIZE * (float) sin( Ships[ ship ].Object.BobCount * BOB_XFREQ );
