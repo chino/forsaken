@@ -51,6 +51,7 @@ bool  vr_auto_level  = false;
 bool  vr_ship_bob    = true;
 bool  vr_hud_cockpit = true;
 bool  vr_vibration   = true;
+bool  vr_steady_mirror = true;
 
 // the panel the HUD and menus are drawn on, in metres
 #define PANEL_WIDTH	2.0f
@@ -1345,8 +1346,12 @@ void vr_eye_end( int eye )
 // there: black adds nothing. Fixed function, which every context the game
 // creates provides (the GL2/GL3 renderers also rely on a compatibility
 // context), with all state saved and restored around it.
-static void draw_additive( GLuint tex )
+// tc: texture coordinates of the corners (bottom left, bottom right, top
+// right, top left), NULL for the whole texture; additive: black is see-through
+static void draw_quad( GLuint tex, const float * tc, bool additive )
 {
+	static const float whole[ 8 ] = { 0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f };
+
 #if GL > 1
 	vgl_UseProgram( 0 );
 #endif
@@ -1363,15 +1368,22 @@ static void draw_additive( GLuint tex )
 	glEnable( GL_TEXTURE_2D );
 	glBindTexture( GL_TEXTURE_2D, tex );
 	glTexEnvi( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE );
-	glEnable( GL_BLEND );
-	glBlendFunc( GL_ONE, GL_ONE );
+	if( additive )
+	{
+		glEnable( GL_BLEND );
+		glBlendFunc( GL_ONE, GL_ONE );
+	}
+	else
+		glDisable( GL_BLEND );
 	glColor4f( 1.0f, 1.0f, 1.0f, 1.0f );
 
+	if( !tc )
+		tc = whole;
 	glBegin( GL_QUADS );
-	glTexCoord2f( 0.0f, 0.0f ); glVertex2f( -1.0f, -1.0f );
-	glTexCoord2f( 1.0f, 0.0f ); glVertex2f(  1.0f, -1.0f );
-	glTexCoord2f( 1.0f, 1.0f ); glVertex2f(  1.0f,  1.0f );
-	glTexCoord2f( 0.0f, 1.0f ); glVertex2f( -1.0f,  1.0f );
+	glTexCoord2f( tc[ 0 ], tc[ 1 ] ); glVertex2f( -1.0f, -1.0f );
+	glTexCoord2f( tc[ 2 ], tc[ 3 ] ); glVertex2f(  1.0f, -1.0f );
+	glTexCoord2f( tc[ 4 ], tc[ 5 ] ); glVertex2f(  1.0f,  1.0f );
+	glTexCoord2f( tc[ 6 ], tc[ 7 ] ); glVertex2f( -1.0f,  1.0f );
 	glEnd();
 
 	glMatrixMode( GL_TEXTURE );    glPopMatrix();
@@ -1383,18 +1395,149 @@ static void draw_additive( GLuint tex )
 #endif
 }
 
+static float dot3( const float * a, const float * b )
+{
+	return a[ 0 ] * b[ 0 ] + a[ 1 ] * b[ 1 ] + a[ 2 ] * b[ 2 ];
+}
+
+static void norm3( float * v )
+{
+	float l = sqrtf( dot3( v, v ) );
+	if( l > 0.0f )
+	{
+		v[ 0 ] /= l; v[ 1 ] /= l; v[ 2 ] /= l;
+	}
+}
+
+// v turned by the quaternion q
+static void quat_turn( const float * q, const float * v, float * out )
+{
+	float t[ 3 ];
+	t[ 0 ] = 2.0f * ( q[ 1 ] * v[ 2 ] - q[ 2 ] * v[ 1 ] );
+	t[ 1 ] = 2.0f * ( q[ 2 ] * v[ 0 ] - q[ 0 ] * v[ 2 ] );
+	t[ 2 ] = 2.0f * ( q[ 0 ] * v[ 1 ] - q[ 1 ] * v[ 0 ] );
+	out[ 0 ] = v[ 0 ] + q[ 3 ] * t[ 0 ] + q[ 1 ] * t[ 2 ] - q[ 2 ] * t[ 1 ];
+	out[ 1 ] = v[ 1 ] + q[ 3 ] * t[ 1 ] + q[ 2 ] * t[ 0 ] - q[ 0 ] * t[ 2 ];
+	out[ 2 ] = v[ 2 ] + q[ 3 ] * t[ 2 ] + q[ 0 ] * t[ 1 ] - q[ 1 ] * t[ 0 ];
+}
+
+// where the direction d is in the eye's picture, in pixels from bottom left
+static bool eye_project( const vr_view_t * v, const float * axes, const float * d, float * x, float * y )
+{
+	float z = dot3( d, axes + 6 );
+	if( z < 1e-4f )
+		return false;
+	*x = ( dot3( d, axes ) / z - v->tan_left ) / ( v->tan_right - v->tan_left ) * eye_target.w;
+	*y = ( dot3( d, axes + 3 ) / z - v->tan_down ) / ( v->tan_up - v->tan_down ) * eye_target.h;
+	return true;
+}
+
+// one euro filter weight for a cutoff frequency in Hz
+static float smoothing( float dt, float cutoff )
+{
+	return 1.0f / ( 1.0f + 1.0f / ( 2.0f * 3.14159265f * cutoff * dt ) );
+}
+
+// The steady desktop view: a window shaped cut-out of the left eye that
+// follows the head's turns but not its wobble, with the room's horizon
+// level (the ship's own roll stays). Gives the texture coordinates of the
+// window's corners, or false to show the plain middle of the eye.
+// Based on the observer view in Forsaken VR's vr_target.c.
+static bool steady_cutout( float aspect, float * tc )
+{
+	static const float unit[ 9 ] = { 1.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, -1.0f };
+	static float fd[ 3 ], last[ 3 ], rate[ 3 ];
+	static XrTime last_time = 0;
+	const vr_view_t * v = &views[ 0 ];
+	float axes[ 9 ], * f = axes + 6, side[ 3 ], p[ 3 ];
+	float W = (float) eye_target.w, H = (float) eye_target.h;
+	float dt, a, cx, cy, hx, hy, theta = 0.0f, c, s, cw, ch, ex = 0.0f, ey = 0.0f;
+	int i, k;
+
+	// the eye's right, up and forward
+	for( i = 0; i < 3; i++ )
+		quat_turn( v->quat, unit + i * 3, axes + i * 3 );
+
+	dt = last_time ? ( frame_state.predictedDisplayTime - last_time ) * 1e-9f : 0.0f;
+	last_time = frame_state.predictedDisplayTime;
+	if( dt <= 0.0f || dt > 0.1f || dot3( f, fd ) < 0.7071f )
+	{
+		// a first frame, a pause or a recentre: start over
+		for( i = 0; i < 3; i++ )
+		{
+			fd[ i ] = last[ i ] = f[ i ];
+			rate[ i ] = 0.0f;
+		}
+	}
+	else
+	{
+		// heavy at rest, light while turning
+		a = smoothing( dt, 1.0f );
+		for( i = 0; i < 3; i++ )
+		{
+			rate[ i ] += a * ( ( f[ i ] - last[ i ] ) / dt - rate[ i ] );
+			last[ i ] = f[ i ];
+		}
+		a = smoothing( dt, 0.4f + 2.0f * sqrtf( dot3( rate, rate ) ) );
+		for( i = 0; i < 3; i++ )
+			fd[ i ] += a * ( f[ i ] - fd[ i ] );
+		norm3( fd );
+	}
+
+	if( !eye_project( v, axes, fd, &cx, &cy ) )
+		return false;
+
+	// the room's horizontal there is the window's
+	side[ 0 ] = -fd[ 2 ]; side[ 1 ] = 0.0f; side[ 2 ] = fd[ 0 ];
+	norm3( side );
+	for( i = 0; i < 3; i++ )
+		p[ i ] = fd[ i ] + 0.02f * side[ i ];
+	if( fabsf( fd[ 1 ] ) < 0.98f && eye_project( v, axes, p, &hx, &hy ) )
+		theta = atan2f( hy - cy, hx - cx );
+	c = cosf( theta );
+	s = sinf( theta );
+
+	// 0.78 of the eye's width, smaller until the turned corners fit
+	for( cw = 0.78f * W; cw > 0.1f * W; cw *= 0.95f )
+	{
+		ch = cw / aspect;
+		ex = fabsf( cw * 0.5f * c ) + fabsf( ch * 0.5f * s );
+		ey = fabsf( cw * 0.5f * s ) + fabsf( ch * 0.5f * c );
+		if( ex <= W * 0.5f && ey <= H * 0.5f )
+			break;
+	}
+	ch = cw / aspect;
+	cx = cx < ex ? ex : ( cx > W - ex ? W - ex : cx );
+	cy = cy < ey ? ey : ( cy > H - ey ? H - ey : cy );
+
+	for( k = 0; k < 4; k++ )
+	{
+		float sx = ( k == 1 || k == 2 ) ? 0.5f : -0.5f;
+		float sy = ( k >= 2 ) ? 0.5f : -0.5f;
+		tc[ k * 2 ]     = ( cx + sx * cw * c - sy * ch * s ) / W;
+		tc[ k * 2 + 1 ] = ( cy + sx * cw * s + sy * ch * c ) / H;
+	}
+	return true;
+}
+
 // the desktop window: the left eye, cut to the window's shape, with the
 // panel over it; or just the panel when there was no 3D scene
 static void draw_mirror( bool eyes )
 {
 	int ww = render_info.ThisMode.w, wh = render_info.ThisMode.h;
 	GLint vp[4];
+	float tc[ 8 ];
 
 	glGetIntegerv( GL_VIEWPORT, vp );
 	bind_target( 0, 0, 0 );
 	glViewport( 0, 0, ww, wh );
 
-	if( eyes )
+	if( eyes && vr_steady_mirror && steady_cutout( (float) ww / (float) wh, tc ) )
+	{
+		draw_quad( eye_target.color, tc, false );
+		draw_quad( panel_target.color, NULL, true );
+	}
+	else if( eyes )
 	{
 		// largest window shaped rectangle in the middle of the eye
 		int sw = eye_target.w, sh = eye_target.h;
@@ -1408,7 +1551,7 @@ static void draw_mirror( bool eyes )
 			( eye_target.w + sw ) / 2, ( eye_target.h + sh ) / 2,
 			0, 0, ww, wh, GL_COLOR_BUFFER_BIT, GL_LINEAR );
 		vgl_BindFramebuffer( GL_READ_FRAMEBUFFER, 0 );
-		draw_additive( panel_target.color );
+		draw_quad( panel_target.color, NULL, true );
 	}
 	else
 	{
