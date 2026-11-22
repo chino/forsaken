@@ -143,4 +143,45 @@ int load_image( texture_image_t * image, int mipmap )
   return 0;
 }
 
+/* write a 24 bit RGB image, rows top to bottom; returns 0 on success */
+int save_image_rgb( const char * path, int w, int h, unsigned char * rgb )
+{
+  png_structp png_ptr;
+  png_infop info_ptr;
+  FILE *fp;
+  int y;
+
+  fp = file_open ((char*) path, "wb");
+  if (!fp)
+    return -1;
+
+  png_ptr = png_create_write_struct (PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
+  if (!png_ptr)
+    {
+      fclose (fp);
+      return -1;
+    }
+
+  info_ptr = png_create_info_struct (png_ptr);
+  if (!info_ptr || setjmp (png_jmpbuf (png_ptr)))
+    {
+      png_destroy_write_struct (&png_ptr, &info_ptr);
+      fclose (fp);
+      return -1;
+    }
+
+  png_init_io (png_ptr, fp);
+  png_set_IHDR (png_ptr, info_ptr, w, h, 8, PNG_COLOR_TYPE_RGB,
+		PNG_INTERLACE_NONE, PNG_COMPRESSION_TYPE_DEFAULT,
+		PNG_FILTER_TYPE_DEFAULT);
+  png_write_info (png_ptr, info_ptr);
+  for (y = 0; y < h; y++)
+    png_write_row (png_ptr, (png_bytep) (rgb + y * w * 3));
+  png_write_end (png_ptr, NULL);
+  png_destroy_write_struct (&png_ptr, &info_ptr);
+
+  fclose (fp);
+  return 0;
+}
+
 #endif
