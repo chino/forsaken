@@ -15,7 +15,7 @@
 #include "main_sdl.h"
 // ask the system gl headers for gl 2+/3+ entry points; linux and mac
 // libGL export them directly so no extension loader is needed there.
-#ifndef GL_GLEXT_PROTOTYPES
+#if GL > 1 && !defined(GL_GLEXT_PROTOTYPES)
 #define GL_GLEXT_PROTOTYPES 1
 #endif
 #include "SDL_opengl.h"
